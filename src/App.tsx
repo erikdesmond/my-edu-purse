@@ -14,6 +14,13 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AccountsPage from "./pages/admin/AccountsPage";
 import AccountDetailPage from "./pages/admin/AccountDetailPage";
 import CoursesPage from "./pages/admin/CoursesPage";
+import SingleTopUpPage from "./pages/admin/SingleTopUpPage";
+import BatchTopUpPage from "./pages/admin/BatchTopUpPage";
+import ReportsPage from "./pages/admin/ReportsPage";
+import AuditLogPage from "./pages/admin/AuditLogPage";
+import UserManagementPage from "./pages/admin/UserManagementPage";
+import EnrolmentsPage from "./pages/admin/EnrolmentsPage";
+import FeeRunPage from "./pages/admin/FeeRunPage";
 
 // Citizen Pages
 import CitizenDashboard from "./pages/citizen/CitizenDashboard";
@@ -61,6 +68,13 @@ const AppRoutes = () => {
       <Route path="/admin/accounts" element={<ProtectedRoute portal="admin"><AccountsPage /></ProtectedRoute>} />
       <Route path="/admin/accounts/:accountId" element={<ProtectedRoute portal="admin"><AccountDetailPage /></ProtectedRoute>} />
       <Route path="/admin/courses" element={<ProtectedRoute portal="admin"><CoursesPage /></ProtectedRoute>} />
+      <Route path="/admin/courses/enrolments" element={<ProtectedRoute portal="admin"><EnrolmentsPage /></ProtectedRoute>} />
+      <Route path="/admin/courses/fee-run" element={<ProtectedRoute portal="admin"><FeeRunPage /></ProtectedRoute>} />
+      <Route path="/admin/topups/single" element={<ProtectedRoute portal="admin"><SingleTopUpPage /></ProtectedRoute>} />
+      <Route path="/admin/topups/batch" element={<ProtectedRoute portal="admin"><BatchTopUpPage /></ProtectedRoute>} />
+      <Route path="/admin/reports" element={<ProtectedRoute portal="admin"><ReportsPage /></ProtectedRoute>} />
+      <Route path="/admin/audit" element={<ProtectedRoute portal="admin"><AuditLogPage /></ProtectedRoute>} />
+      <Route path="/admin/users" element={<ProtectedRoute portal="admin"><UserManagementPage /></ProtectedRoute>} />
       
       {/* Citizen Portal Routes */}
       <Route path="/portal" element={<ProtectedRoute portal="citizen"><CitizenDashboard /></ProtectedRoute>} />

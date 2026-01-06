@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Filter, Plus, Eye, MoreHorizontal } from 'lucide-react';
+import { Search, Plus, Eye, MoreHorizontal } from 'lucide-react';
 import { AdminLayout } from '@/components/layouts/AdminLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -38,10 +38,17 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { toast } from '@/hooks/use-toast';
+import { useDataStore } from '@/hooks/useDataStore';
 import {
-  accountHolders,
-  educationAccounts,
+  getEducationAccounts,
+  getAccountHolders,
   getAccountHolder,
+  addAccountHolder,
+  addEducationAccount,
+  addAuditLog,
+} from '@/lib/dataStore';
+import {
   formatCurrency,
   formatDate,
   getStatusLabel,
@@ -49,13 +56,25 @@ import {
   AccountStatus,
   SchoolingStatus
 } from '@/lib/data';
-import { toast } from '@/hooks/use-toast';
 
 const AccountsPage: React.FC = () => {
+  const educationAccounts = useDataStore(getEducationAccounts);
+  const accountHolders = useDataStore(getAccountHolders);
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [schoolingFilter, setSchoolingFilter] = useState<string>('all');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  
+  // Form states
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [address, setAddress] = useState('');
+  const [schoolingStatus, setSchoolingStatus] = useState<SchoolingStatus>('in_school');
+  const [initialBalance, setInitialBalance] = useState('');
 
   const filteredAccounts = educationAccounts.filter(account => {
     const holder = getAccountHolder(account.holderId);
@@ -73,12 +92,87 @@ const AccountsPage: React.FC = () => {
     return matchesSearch && matchesStatus && matchesSchooling;
   });
 
+  const resetForm = () => {
+    setFirstName('');
+    setLastName('');
+    setEmail('');
+    setPhone('');
+    setDateOfBirth('');
+    setAddress('');
+    setSchoolingStatus('in_school');
+    setInitialBalance('');
+  };
+
   const handleCreateAccount = () => {
+    if (!firstName || !lastName || !email || !dateOfBirth) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Calculate age
+    const birthDate = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+
+    // Create account holder
+    const holderId = `AH${String(Date.now()).slice(-6)}`;
+    const newHolder = {
+      id: holderId,
+      firstName,
+      lastName,
+      email,
+      phone: phone || '',
+      dateOfBirth,
+      age,
+      address: address || '',
+      schoolingStatus,
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+
+    addAccountHolder(newHolder);
+
+    // Create education account
+    const accountId = `EA${String(Date.now()).slice(-6)}`;
+    const balance = parseFloat(initialBalance) || 0;
+    const newAccount = {
+      id: accountId,
+      holderId,
+      balance,
+      status: 'active' as AccountStatus,
+      openedAt: new Date().toISOString().split('T')[0],
+      closedAt: null,
+      lastTopUpDate: balance > 0 ? new Date().toISOString().split('T')[0] : null,
+    };
+
+    addEducationAccount(newAccount);
+
+    // Add audit log
+    addAuditLog({
+      id: `AUD${String(Date.now()).slice(-6)}`,
+      action: 'Account Created',
+      entityType: 'EducationAccount',
+      entityId: accountId,
+      userId: 'USR001',
+      userName: 'Admin User',
+      details: `New education account created for ${firstName} ${lastName}`,
+      createdAt: new Date().toISOString(),
+    });
+
     toast({
       title: "Account Created",
-      description: "New education account has been created successfully.",
+      description: `Education account for ${firstName} ${lastName} has been created successfully.`,
     });
+
     setCreateDialogOpen(false);
+    resetForm();
   };
 
   return (
@@ -89,30 +183,103 @@ const AccountsPage: React.FC = () => {
       >
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={resetForm}>
               <Plus className="h-4 w-4 mr-2" />
               Create Account
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Create New Account</DialogTitle>
               <DialogDescription>
                 Create a new education account for an account holder.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="holderId">Account Holder ID</Label>
-                <Input id="holderId" placeholder="e.g., AH001" />
+            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name *</Label>
+                  <Input 
+                    id="firstName" 
+                    placeholder="First name"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name *</Label>
+                  <Input 
+                    id="lastName" 
+                    placeholder="Last name"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="initialBalance">Initial Balance (SGD)</Label>
-                <Input id="initialBalance" type="number" placeholder="0.00" />
+                <Label htmlFor="email">Email *</Label>
+                <Input 
+                  id="email" 
+                  type="email"
+                  placeholder="email@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input 
+                    id="phone" 
+                    placeholder="+65 9XXX XXXX"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dob">Date of Birth *</Label>
+                  <Input 
+                    id="dob" 
+                    type="date"
+                    value={dateOfBirth}
+                    onChange={(e) => setDateOfBirth(e.target.value)}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="reason">Reason</Label>
-                <Input id="reason" placeholder="Reason for manual creation" />
+                <Label htmlFor="address">Address</Label>
+                <Input 
+                  id="address" 
+                  placeholder="Full address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="schooling">Schooling Status</Label>
+                  <Select value={schoolingStatus} onValueChange={(v) => setSchoolingStatus(v as SchoolingStatus)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="in_school">In School</SelectItem>
+                      <SelectItem value="graduated">Graduated</SelectItem>
+                      <SelectItem value="deferred">Deferred</SelectItem>
+                      <SelectItem value="dropped_out">Dropped Out</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="balance">Initial Balance (SGD)</Label>
+                  <Input 
+                    id="balance" 
+                    type="number"
+                    placeholder="0.00"
+                    value={initialBalance}
+                    onChange={(e) => setInitialBalance(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
             <DialogFooter>
@@ -228,7 +395,9 @@ const AccountsPage: React.FC = () => {
                               <Eye className="h-4 w-4 mr-2" /> View Details
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem>Top-up Account</DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link to="/admin/topups/single">Top-up Account</Link>
+                          </DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive">Suspend Account</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
