@@ -30,6 +30,9 @@ export interface EducationAccount {
   lastTopUpDate: string | null;
 }
 
+export type PaymentType = 'one_time' | 'recurring';
+export type BillingCycle = 'monthly' | 'quarterly' | 'bi_annually' | 'annually';
+
 export interface Course {
   id: string;
   code: string;
@@ -37,6 +40,9 @@ export interface Course {
   monthlyFee: number;
   description: string;
   isActive: boolean;
+  paymentType?: PaymentType;
+  billingCycle?: BillingCycle;
+  durationMonths?: number;
 }
 
 export interface Enrolment {
@@ -119,9 +125,9 @@ export const accountHolders: AccountHolder[] = [
   { id: 'AH012', firstName: 'Kevin', lastName: 'Lee', email: 'kevin.lee@email.com', phone: '+65 9222 3333', dateOfBirth: '1997-10-30', age: 27, address: '88 Toa Payoh Lorong 4, Singapore 310088', schoolingStatus: 'dropped_out', createdAt: '2021-07-18' },
 ];
 
-// Demo Education Accounts
+// Demo Education Accounts - AH001 (Wei Ming) has $100 balance to demonstrate combined payment
 export const educationAccounts: EducationAccount[] = [
-  { id: 'EA001', holderId: 'AH001', balance: 1250.00, status: 'active', openedAt: '2023-01-15', closedAt: null, lastTopUpDate: '2024-12-01' },
+  { id: 'EA001', holderId: 'AH001', balance: 100.00, status: 'active', openedAt: '2023-01-15', closedAt: null, lastTopUpDate: '2024-12-01' },
   { id: 'EA002', holderId: 'AH002', balance: 450.50, status: 'active', openedAt: '2022-08-20', closedAt: null, lastTopUpDate: '2024-11-15' },
   { id: 'EA003', holderId: 'AH003', balance: 2000.00, status: 'active', openedAt: '2024-01-10', closedAt: null, lastTopUpDate: '2024-12-20' },
   { id: 'EA004', holderId: 'AH004', balance: 875.25, status: 'active', openedAt: '2023-06-05', closedAt: null, lastTopUpDate: '2024-10-01' },
@@ -135,22 +141,24 @@ export const educationAccounts: EducationAccount[] = [
   { id: 'EA012', holderId: 'AH012', balance: 50.00, status: 'suspended', openedAt: '2021-07-18', closedAt: null, lastTopUpDate: '2023-06-01' },
 ];
 
-// Demo Courses
+// Demo Courses with payment types
 export const courses: Course[] = [
-  { id: 'CRS001', code: 'IT101', name: 'Introduction to Programming', monthlyFee: 150.00, description: 'Basic programming concepts and Python', isActive: true },
-  { id: 'CRS002', code: 'BUS201', name: 'Business Management', monthlyFee: 200.00, description: 'Fundamentals of business operations', isActive: true },
-  { id: 'CRS003', code: 'ENG102', name: 'English Communication', monthlyFee: 100.00, description: 'Professional English writing and speaking', isActive: true },
-  { id: 'CRS004', code: 'ACC301', name: 'Financial Accounting', monthlyFee: 180.00, description: 'Accounting principles and practices', isActive: true },
-  { id: 'CRS005', code: 'DES101', name: 'Graphic Design Basics', monthlyFee: 175.00, description: 'Introduction to visual design', isActive: true },
-  { id: 'CRS006', code: 'MKT201', name: 'Digital Marketing', monthlyFee: 160.00, description: 'Online marketing strategies', isActive: true },
-  { id: 'CRS007', code: 'DATA101', name: 'Data Analytics', monthlyFee: 220.00, description: 'Data analysis and visualization', isActive: true },
-  { id: 'CRS008', code: 'WEB201', name: 'Web Development', monthlyFee: 190.00, description: 'Modern web technologies', isActive: false },
+  { id: 'CRS001', code: 'IT101', name: 'Introduction to Programming', monthlyFee: 150.00, description: 'Basic programming concepts and Python', isActive: true, paymentType: 'recurring', billingCycle: 'monthly', durationMonths: 6 },
+  { id: 'CRS002', code: 'BUS201', name: 'Business Management', monthlyFee: 200.00, description: 'Fundamentals of business operations', isActive: true, paymentType: 'recurring', billingCycle: 'quarterly', durationMonths: 12 },
+  { id: 'CRS003', code: 'ENG102', name: 'English Communication', monthlyFee: 50.00, description: 'Professional English writing and speaking', isActive: true, paymentType: 'recurring', billingCycle: 'monthly', durationMonths: 3 },
+  { id: 'CRS004', code: 'ACC301', name: 'Financial Accounting', monthlyFee: 180.00, description: 'Accounting principles and practices', isActive: true, paymentType: 'recurring', billingCycle: 'bi_annually', durationMonths: 12 },
+  { id: 'CRS005', code: 'DES101', name: 'Graphic Design Basics', monthlyFee: 175.00, description: 'Introduction to visual design', isActive: true, paymentType: 'one_time', durationMonths: 3 },
+  { id: 'CRS006', code: 'MKT201', name: 'Digital Marketing', monthlyFee: 160.00, description: 'Online marketing strategies', isActive: true, paymentType: 'recurring', billingCycle: 'monthly', durationMonths: 4 },
+  { id: 'CRS007', code: 'DATA101', name: 'Data Analytics', monthlyFee: 220.00, description: 'Data analysis and visualization', isActive: true, paymentType: 'recurring', billingCycle: 'monthly', durationMonths: 6 },
+  { id: 'CRS008', code: 'WEB201', name: 'Web Development', monthlyFee: 190.00, description: 'Modern web technologies', isActive: false, paymentType: 'recurring', billingCycle: 'annually', durationMonths: 12 },
 ];
 
-// Demo Enrolments
+// Demo Enrolments - AH001 has more courses to demonstrate payment scenarios
 export const enrolments: Enrolment[] = [
   { id: 'ENR001', holderId: 'AH001', courseId: 'CRS001', startDate: '2024-01-01', endDate: null, isActive: true },
   { id: 'ENR002', holderId: 'AH001', courseId: 'CRS003', startDate: '2024-01-01', endDate: null, isActive: true },
+  { id: 'ENR009', holderId: 'AH001', courseId: 'CRS007', startDate: '2024-10-01', endDate: null, isActive: true },
+  { id: 'ENR010', holderId: 'AH001', courseId: 'CRS002', startDate: '2024-06-01', endDate: null, isActive: true },
   { id: 'ENR003', holderId: 'AH003', courseId: 'CRS001', startDate: '2024-02-01', endDate: null, isActive: true },
   { id: 'ENR004', holderId: 'AH004', courseId: 'CRS002', startDate: '2023-09-01', endDate: null, isActive: true },
   { id: 'ENR005', holderId: 'AH006', courseId: 'CRS005', startDate: '2024-07-01', endDate: null, isActive: true },
@@ -173,10 +181,14 @@ export const transactions: Transaction[] = [
   { id: 'TXN010', accountId: 'EA007', type: 'top_up', amount: 200.00, balanceAfter: 520.00, description: 'Manual Top-up', reference: 'MAN-2024-007', status: 'failed', createdAt: '2024-08-01T09:00:00' },
 ];
 
-// Demo Outstanding Charges
+// Demo Outstanding Charges - Multiple charges for AH001 to demonstrate payment scenarios
+// Scenario 1: $50 charge - balance sufficient ($100)
+// Scenario 2: $150 charge - balance insufficient, need combined payment
 export const outstandingCharges: OutstandingCharge[] = [
   { id: 'CHG001', accountId: 'EA001', courseId: 'CRS001', courseName: 'Introduction to Programming', period: 'Jan 2025', amount: 150.00, dueDate: '2025-01-15', status: 'unpaid' },
-  { id: 'CHG002', accountId: 'EA001', courseId: 'CRS003', courseName: 'English Communication', period: 'Jan 2025', amount: 100.00, dueDate: '2025-01-15', status: 'unpaid' },
+  { id: 'CHG002', accountId: 'EA001', courseId: 'CRS003', courseName: 'English Communication', period: 'Jan 2025', amount: 50.00, dueDate: '2025-01-15', status: 'unpaid' },
+  { id: 'CHG006', accountId: 'EA001', courseId: 'CRS007', courseName: 'Data Analytics', period: 'Jan 2025', amount: 220.00, dueDate: '2025-01-20', status: 'unpaid' },
+  { id: 'CHG007', accountId: 'EA001', courseId: 'CRS002', courseName: 'Business Management', period: 'Dec 2024', amount: 200.00, dueDate: '2024-12-20', status: 'overdue' },
   { id: 'CHG003', accountId: 'EA003', courseId: 'CRS001', courseName: 'Introduction to Programming', period: 'Jan 2025', amount: 150.00, dueDate: '2025-01-15', status: 'unpaid' },
   { id: 'CHG004', accountId: 'EA004', courseId: 'CRS002', courseName: 'Business Management', period: 'Dec 2024', amount: 200.00, dueDate: '2024-12-15', status: 'overdue' },
   { id: 'CHG005', accountId: 'EA011', courseId: 'CRS006', courseName: 'Digital Marketing', period: 'Dec 2024', amount: 160.00, dueDate: '2024-12-20', status: 'unpaid' },

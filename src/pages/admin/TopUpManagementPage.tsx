@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Play, Eye, Save, Search, X, Calendar as CalendarIcon, Upload } from 'lucide-react';
+import { Play, Eye, Save, Search, X, Calendar as CalendarIcon, Upload, TrendingUp, DollarSign, Users, Clock } from 'lucide-react';
 import { AdminLayout } from '@/components/layouts/AdminLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { StatCard } from '@/components/shared/StatCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -44,6 +45,7 @@ import { useDataStore } from '@/hooks/useDataStore';
 import { 
   getEducationAccounts, 
   getBatches,
+  getTransactions,
   getAccountHolder, 
   addTransaction, 
   updateEducationAccount,
@@ -53,7 +55,7 @@ import {
 } from '@/lib/dataStore';
 import { formatCurrency, formatDateTime } from '@/lib/data';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, startOfWeek, startOfMonth, startOfQuarter, startOfYear } from 'date-fns';
 
 interface BatchPreset {
   id: string;
@@ -70,6 +72,7 @@ interface BatchPreset {
 const TopUpManagementPage: React.FC = () => {
   const educationAccounts = useDataStore(getEducationAccounts);
   const batches = useDataStore(getBatches);
+  const transactions = useDataStore(getTransactions);
   
   const [individualDialogOpen, setIndividualDialogOpen] = useState(false);
   const [batchDialogOpen, setBatchDialogOpen] = useState(false);
@@ -108,6 +111,30 @@ const TopUpManagementPage: React.FC = () => {
     total: number;
     scheduled?: boolean;
   } | null>(null);
+
+  // Calculate top-up statistics
+  const now = new Date();
+  const topUpTransactions = transactions.filter(t => t.type === 'top_up' && t.status === 'completed');
+  
+  const todayStr = now.toISOString().split('T')[0];
+  const todayTopUps = topUpTransactions.filter(t => t.createdAt.startsWith(todayStr));
+  const todayTotal = todayTopUps.reduce((sum, t) => sum + t.amount, 0);
+  
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const weekTopUps = topUpTransactions.filter(t => new Date(t.createdAt) >= weekStart);
+  const weekTotal = weekTopUps.reduce((sum, t) => sum + t.amount, 0);
+  
+  const monthStart = startOfMonth(now);
+  const monthTopUps = topUpTransactions.filter(t => new Date(t.createdAt) >= monthStart);
+  const monthTotal = monthTopUps.reduce((sum, t) => sum + t.amount, 0);
+  
+  const quarterStart = startOfQuarter(now);
+  const quarterTopUps = topUpTransactions.filter(t => new Date(t.createdAt) >= quarterStart);
+  const quarterTotal = quarterTopUps.reduce((sum, t) => sum + t.amount, 0);
+  
+  const yearStart = startOfYear(now);
+  const yearTopUps = topUpTransactions.filter(t => new Date(t.createdAt) >= yearStart);
+  const yearTotal = yearTopUps.reduce((sum, t) => sum + t.amount, 0);
 
   const filteredAccounts = educationAccounts.filter(account => {
     const holder = getAccountHolder(account.holderId);
@@ -394,6 +421,45 @@ const TopUpManagementPage: React.FC = () => {
         description="Manage individual and batch top-ups"
       />
 
+      {/* Mini Dashboard - Top-up Statistics */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-8">
+        <StatCard
+          title="Today"
+          value={formatCurrency(todayTotal)}
+          subtitle={`${todayTopUps.length} top-ups`}
+          icon={<DollarSign className="h-5 w-5" />}
+          variant="primary"
+        />
+        <StatCard
+          title="This Week"
+          value={formatCurrency(weekTotal)}
+          subtitle={`${weekTopUps.length} top-ups`}
+          icon={<TrendingUp className="h-5 w-5" />}
+          variant="info"
+        />
+        <StatCard
+          title="This Month"
+          value={formatCurrency(monthTotal)}
+          subtitle={`${monthTopUps.length} top-ups`}
+          icon={<Calendar className="h-5 w-5" />}
+          variant="success"
+        />
+        <StatCard
+          title="This Quarter"
+          value={formatCurrency(quarterTotal)}
+          subtitle={`${quarterTopUps.length} top-ups`}
+          icon={<Clock className="h-5 w-5" />}
+          variant="warning"
+        />
+        <StatCard
+          title="This Year"
+          value={formatCurrency(yearTotal)}
+          subtitle={`${yearTopUps.length} top-ups`}
+          icon={<Users className="h-5 w-5" />}
+          variant="primary"
+        />
+      </div>
+
       {/* Action Buttons */}
       <div className="grid gap-4 md:grid-cols-2 mb-8">
         <Card 
@@ -499,51 +565,61 @@ const TopUpManagementPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Account List */}
-            <div className="max-h-48 overflow-y-auto border rounded-lg">
-              {filteredAccounts.slice(0, 20).map((account) => {
-                const holder = getAccountHolder(account.holderId);
-                if (!holder) return null;
-
-                return (
-                  <div
-                    key={account.id}
-                    className="flex items-center gap-3 p-3 border-b last:border-b-0 hover:bg-muted/50"
-                  >
-                    <Checkbox
-                      checked={selectedAccountIds.includes(account.id)}
-                      onCheckedChange={(checked) => handleSelectAccount(account.id, checked as boolean)}
-                    />
-                    <div className="flex-1">
-                      <p className="font-medium">{holder.firstName} {holder.lastName}</p>
-                      <p className="text-sm text-muted-foreground">{account.id}</p>
-                    </div>
-                    <p className="font-semibold">{formatCurrency(account.balance)}</p>
-                  </div>
-                );
-              })}
-            </div>
-
+            {/* Selected Accounts */}
             {selectedAccountIds.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {selectedAccountIds.map(id => {
-                  const account = getEducationAccount(id);
+                  const account = educationAccounts.find(a => a.id === id);
                   const holder = account ? getAccountHolder(account.holderId) : null;
                   return (
-                    <Badge key={id} variant="secondary" className="gap-1">
-                      {holder?.firstName} {holder?.lastName}
-                      <X 
-                        className="h-3 w-3 cursor-pointer" 
+                    <Badge key={id} variant="secondary" className="pl-2 pr-1 py-1">
+                      {holder ? `${holder.firstName} ${holder.lastName}` : id}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-4 w-4 ml-1 hover:bg-transparent"
                         onClick={() => handleSelectAccount(id, false)}
-                      />
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
                     </Badge>
                   );
                 })}
               </div>
             )}
 
-            {/* Amount & Reason */}
-            <div className="grid gap-4 md:grid-cols-2">
+            {/* Account List */}
+            {searchQuery && (
+              <div className="border rounded-lg max-h-40 overflow-y-auto">
+                {filteredAccounts.slice(0, 10).map(account => {
+                  const holder = getAccountHolder(account.holderId);
+                  const isSelected = selectedAccountIds.includes(account.id);
+                  
+                  return (
+                    <div
+                      key={account.id}
+                      className={cn(
+                        "flex items-center justify-between p-3 cursor-pointer hover:bg-secondary/50",
+                        isSelected && "bg-primary/10"
+                      )}
+                      onClick={() => handleSelectAccount(account.id, !isSelected)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Checkbox checked={isSelected} />
+                        <div>
+                          <p className="font-medium">{holder?.firstName} {holder?.lastName}</p>
+                          <p className="text-sm text-muted-foreground">{account.id}</p>
+                        </div>
+                      </div>
+                      <span className="text-sm">{formatCurrency(account.balance)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Amount and Reason */}
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Amount (SGD) *</Label>
                 <Input
@@ -556,59 +632,58 @@ const TopUpManagementPage: React.FC = () => {
               <div className="space-y-2">
                 <Label>Reason *</Label>
                 <Input
-                  placeholder="Reason for top-up"
+                  placeholder="e.g., Annual Grant"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                 />
               </div>
             </div>
 
-            {/* Schedule */}
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="schedule" 
-                checked={scheduleTopUp}
-                onCheckedChange={(checked) => setScheduleTopUp(checked as boolean)}
-              />
-              <Label htmlFor="schedule">Schedule Top-up</Label>
+            {/* Schedule Top-up */}
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="schedule"
+                  checked={scheduleTopUp}
+                  onCheckedChange={(checked) => setScheduleTopUp(checked as boolean)}
+                />
+                <Label htmlFor="schedule">Schedule Top-up</Label>
+              </div>
+              
+              {scheduleTopUp && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !scheduledDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {scheduledDate ? format(scheduledDate, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={scheduledDate}
+                      onSelect={setScheduledDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
-
-            {scheduleTopUp && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !scheduledDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {scheduledDate ? format(scheduledDate, "PPP") : "Pick a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={scheduledDate}
-                    onSelect={setScheduledDate}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-            )}
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIndividualDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleIndividualTopUp}
-              disabled={selectedAccountIds.length === 0 || !amount || !reason}
-            >
-              {scheduleTopUp ? 'Schedule Top-up' : 'Process Top-up'}
+            <Button onClick={handleIndividualTopUp}>
+              <Play className="h-4 w-4 mr-2" />
+              {scheduleTopUp ? 'Schedule' : 'Execute'} Top-up
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -616,11 +691,11 @@ const TopUpManagementPage: React.FC = () => {
 
       {/* Batch Top-up Dialog */}
       <Dialog open={batchDialogOpen} onOpenChange={setBatchDialogOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Batch Top-up</DialogTitle>
             <DialogDescription>
-              Configure rules for batch top-up
+              Configure rules to top up multiple accounts at once
             </DialogDescription>
           </DialogHeader>
           
@@ -629,12 +704,12 @@ const TopUpManagementPage: React.FC = () => {
             {presets.length > 0 && (
               <div className="space-y-2">
                 <Label>Load Preset</Label>
-                <Select value={selectedPreset} onValueChange={(v) => {
-                  setSelectedPreset(v);
-                  loadPreset(v);
+                <Select value={selectedPreset} onValueChange={(value) => {
+                  setSelectedPreset(value);
+                  loadPreset(value);
                 }}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a preset" />
+                    <SelectValue placeholder="Select a saved preset" />
                   </SelectTrigger>
                   <SelectContent>
                     {presets.map(preset => (
@@ -647,42 +722,11 @@ const TopUpManagementPage: React.FC = () => {
               </div>
             )}
 
-            {/* Amount Configuration */}
+            {/* Rules */}
             <div className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Amount (SGD) *</Label>
-                  <Input
-                    type="number"
-                    placeholder="0.00"
-                    value={batchAmount}
-                    onChange={(e) => setBatchAmount(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Amount Type</Label>
-                  <RadioGroup 
-                    value={batchAmountType} 
-                    onValueChange={(v) => setBatchAmountType(v as 'even' | 'per_account')}
-                    className="flex gap-4"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="per_account" id="per_account" />
-                      <Label htmlFor="per_account">Per Account</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="even" id="even" />
-                      <Label htmlFor="even">Distribute Evenly</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-              </div>
-            </div>
-
-            {/* Filter Criteria */}
-            <div className="border-t pt-4">
-              <h4 className="font-medium mb-4">Filter Criteria</h4>
-              <div className="grid gap-4 md:grid-cols-3">
+              <h4 className="font-medium">Filter Rules</h4>
+              
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Min Age</Label>
                   <Input
@@ -701,31 +745,20 @@ const TopUpManagementPage: React.FC = () => {
                     onChange={(e) => setMaxAge(e.target.value)}
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Schooling Status</Label>
-                  <Select value={schoolingStatus} onValueChange={setSchoolingStatus}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="in_school">In School</SelectItem>
-                      <SelectItem value="graduated">Graduated</SelectItem>
-                      <SelectItem value="deferred">Deferred</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Min Balance</Label>
+                  <Label>Min Balance (SGD)</Label>
                   <Input
                     type="number"
-                    placeholder="0.00"
+                    placeholder="e.g., 0"
                     value={minBalance}
                     onChange={(e) => setMinBalance(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Max Balance</Label>
+                  <Label>Max Balance (SGD)</Label>
                   <Input
                     type="number"
                     placeholder="e.g., 500"
@@ -734,124 +767,143 @@ const TopUpManagementPage: React.FC = () => {
                   />
                 </div>
               </div>
-            </div>
 
-            {/* Schedule */}
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="batchSchedule" 
-                checked={batchScheduleTopUp}
-                onCheckedChange={(checked) => setBatchScheduleTopUp(checked as boolean)}
-              />
-              <Label htmlFor="batchSchedule">Schedule Top-up</Label>
-            </div>
-
-            {batchScheduleTopUp && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !batchScheduledDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {batchScheduledDate ? format(batchScheduledDate, "PPP") : "Pick a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={batchScheduledDate}
-                    onSelect={setBatchScheduledDate}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-            )}
-
-            {/* Summary */}
-            <div className="p-4 bg-muted/50 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Eligible Accounts</p>
-                  <p className="text-2xl font-bold">{eligibleAccounts.length}</p>
-                </div>
-                {batchAmount && (
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Total Amount</p>
-                    <p className="text-2xl font-bold text-success">
-                      {formatCurrency(
-                        batchAmountType === 'even' 
-                          ? parseFloat(batchAmount || '0')
-                          : parseFloat(batchAmount || '0') * eligibleAccounts.length
-                      )}
-                    </p>
-                  </div>
-                )}
+              <div className="space-y-2">
+                <Label>Schooling Status</Label>
+                <Select value={schoolingStatus} onValueChange={setSchoolingStatus}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="in_school">In School</SelectItem>
+                    <SelectItem value="graduated">Graduated</SelectItem>
+                    <SelectItem value="deferred">Deferred</SelectItem>
+                    <SelectItem value="dropped_out">Dropped Out</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
+            {/* Amount Configuration */}
+            <div className="space-y-4">
+              <h4 className="font-medium">Amount Configuration</h4>
+              
+              <div className="flex items-end gap-4">
+                <div className="flex-1 space-y-2">
+                  <Label>Amount (SGD) *</Label>
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    value={batchAmount}
+                    onChange={(e) => setBatchAmount(e.target.value)}
+                  />
+                </div>
+                <RadioGroup 
+                  value={batchAmountType} 
+                  onValueChange={(v) => setBatchAmountType(v as 'even' | 'per_account')}
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="per_account" id="per_account" />
+                    <Label htmlFor="per_account">Per Account</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="even" id="even" />
+                    <Label htmlFor="even">Distribute Evenly</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            </div>
+
+            {/* Schedule */}
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="batchSchedule"
+                  checked={batchScheduleTopUp}
+                  onCheckedChange={(checked) => setBatchScheduleTopUp(checked as boolean)}
+                />
+                <Label htmlFor="batchSchedule">Schedule Top-up</Label>
+              </div>
+              
+              {batchScheduleTopUp && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !batchScheduledDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {batchScheduledDate ? format(batchScheduledDate, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={batchScheduledDate}
+                      onSelect={setBatchScheduledDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              )}
+            </div>
+
             {/* Preview */}
-            {showPreview && (
-              <div className="border rounded-lg max-h-48 overflow-y-auto">
+            <Button variant="outline" onClick={() => setShowPreview(!showPreview)}>
+              <Eye className="h-4 w-4 mr-2" />
+              {showPreview ? 'Hide' : 'Show'} Preview ({eligibleAccounts.length} accounts)
+            </Button>
+
+            {showPreview && eligibleAccounts.length > 0 && (
+              <div className="border rounded-lg max-h-40 overflow-y-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Account Holder</TableHead>
+                      <TableHead>Account</TableHead>
                       <TableHead>Current Balance</TableHead>
-                      <TableHead className="text-right">New Balance</TableHead>
+                      <TableHead className="text-right">Top-up Amount</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {eligibleAccounts.slice(0, 10).map(account => {
                       const holder = getAccountHolder(account.holderId);
-                      const topUpAmount = batchAmountType === 'even'
-                        ? parseFloat(batchAmount || '0') / eligibleAccounts.length
+                      const topUpAmount = batchAmountType === 'even' 
+                        ? parseFloat(batchAmount || '0') / eligibleAccounts.length 
                         : parseFloat(batchAmount || '0');
+                      
                       return (
                         <TableRow key={account.id}>
                           <TableCell>{holder?.firstName} {holder?.lastName}</TableCell>
                           <TableCell>{formatCurrency(account.balance)}</TableCell>
-                          <TableCell className="text-right text-success font-semibold">
-                            {formatCurrency(account.balance + topUpAmount)}
-                          </TableCell>
+                          <TableCell className="text-right text-success">+{formatCurrency(topUpAmount)}</TableCell>
                         </TableRow>
                       );
                     })}
                   </TableBody>
                 </Table>
-                {eligibleAccounts.length > 10 && (
-                  <p className="text-sm text-center text-muted-foreground py-2">
-                    + {eligibleAccounts.length - 10} more accounts
-                  </p>
-                )}
               </div>
             )}
           </div>
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setShowPreview(!showPreview)}>
-              <Eye className="h-4 w-4 mr-2" />
-              {showPreview ? 'Hide Preview' : 'Preview'}
-            </Button>
             <Button variant="outline" onClick={() => setSavePresetDialogOpen(true)}>
               <Save className="h-4 w-4 mr-2" />
               Save Preset
             </Button>
-            <div className="flex-1" />
-            <Button variant="outline" onClick={() => setBatchDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleBatchTopUp}
-              disabled={!batchAmount || eligibleAccounts.length === 0}
-            >
-              <Play className="h-4 w-4 mr-2" />
-              {batchScheduleTopUp ? 'Schedule Batch' : 'Execute Batch'}
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setBatchDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleBatchTopUp}>
+                <Play className="h-4 w-4 mr-2" />
+                {batchScheduleTopUp ? 'Schedule' : 'Execute'} Batch Top-up
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -862,14 +914,14 @@ const TopUpManagementPage: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Save Preset</DialogTitle>
             <DialogDescription>
-              Save this configuration for future use
+              Save these batch top-up settings for future use
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Preset Name</Label>
+              <Label>Preset Name *</Label>
               <Input
-                placeholder="e.g., Monthly Youth Grant"
+                placeholder="e.g., Youth Education Grant"
                 value={presetName}
                 onChange={(e) => setPresetName(e.target.value)}
               />
@@ -891,19 +943,19 @@ const TopUpManagementPage: React.FC = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-success">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-success/10">
-                <Play className="h-4 w-4 text-success" />
-              </div>
+              <Play className="h-5 w-5" />
               {successResult?.scheduled ? 'Top-up Scheduled' : 'Top-up Successful'}
             </DialogTitle>
           </DialogHeader>
           <div className="py-6 text-center">
-            <p className="text-3xl font-bold text-foreground mb-2">
+            <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-success/10 mb-4">
+              <TrendingUp className="h-8 w-8 text-success" />
+            </div>
+            <p className="text-lg font-semibold">
               {formatCurrency(successResult?.total || 0)}
             </p>
-            <p className="text-muted-foreground">
-              {successResult?.scheduled ? 'Scheduled for ' : 'Processed for '}
-              {successResult?.count} account(s)
+            <p className="text-sm text-muted-foreground mt-1">
+              {successResult?.scheduled ? 'Scheduled for' : 'Processed for'} {successResult?.count} account(s)
             </p>
           </div>
           <DialogFooter>

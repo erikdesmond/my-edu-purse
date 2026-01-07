@@ -451,20 +451,22 @@ const CoursesPage: React.FC = () => {
                     </Label>
                   </div>
 
-                  <div className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer ${
-                    balance <= 0 ? 'opacity-50' : ''
-                  }`}>
-                    <RadioGroupItem value="combined" id="combined" disabled={balance <= 0} />
-                    <Label htmlFor="combined" className="flex-1 cursor-pointer">
-                      <div className="flex items-center gap-2">
-                        <Wallet className="h-4 w-4" />
-                        <span className="font-medium">Combined Payment</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Use balance ({formatCurrency(Math.min(balance, selectedTotal))}) + pay remaining online ({formatCurrency(remainingAfterBalance)})
-                      </p>
-                    </Label>
-                  </div>
+                  {/* Combined Payment - Only show when balance is insufficient */}
+                  {!canPayWithBalance && balance > 0 && (
+                    <div className="flex items-start space-x-3 p-3 rounded-lg border border-primary/50 bg-primary/5 cursor-pointer">
+                      <RadioGroupItem value="combined" id="combined" />
+                      <Label htmlFor="combined" className="flex-1 cursor-pointer">
+                        <div className="flex items-center gap-2">
+                          <Wallet className="h-4 w-4 text-primary" />
+                          <span className="font-medium text-primary">Combined Payment</span>
+                          <Badge variant="info" className="text-xs">Recommended</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Use balance ({formatCurrency(balance)}) + pay remaining ({formatCurrency(remainingAfterBalance)}) online
+                        </p>
+                      </Label>
+                    </div>
+                  )}
                 </RadioGroup>
               </div>
               <DialogFooter>

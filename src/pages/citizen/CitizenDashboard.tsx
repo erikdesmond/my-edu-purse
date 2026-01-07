@@ -1,26 +1,40 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Wallet, TrendingUp, CreditCard, ArrowRight, Receipt, Clock } from 'lucide-react';
+import { Wallet, TrendingUp, CreditCard, ArrowRight, Receipt, Clock, BookOpen, Calendar } from 'lucide-react';
 import { CitizenLayout } from '@/components/layouts/CitizenLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  getEducationAccount,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { useDataStore } from '@/hooks/useDataStore';
+import {
+  getEducationAccountByHolder,
   getTransactionsByAccount,
   getOutstandingChargesByAccount,
-  formatCurrency,
-  formatDate,
-  formatDateTime
-} from '@/lib/data';
+  getEnrolmentsByHolder,
+  getCourse
+} from '@/lib/dataStore';
+import { formatCurrency, formatDate, formatDateTime } from '@/lib/data';
 
 const CitizenDashboard: React.FC = () => {
   const { citizenUser } = useAuth();
-  const account = citizenUser ? getEducationAccount(citizenUser.accountId) : null;
+  const account = citizenUser ? getEducationAccountByHolder(citizenUser.id) : null;
+  
+  // Force re-render when data changes
+  useDataStore(() => account);
+  
   const transactions = account ? getTransactionsByAccount(account.id).slice(0, 5) : [];
   const outstandingCharges = account ? getOutstandingChargesByAccount(account.id) : [];
-  const hasOutstanding = outstandingCharges.some(c => c.status === 'unpaid' || c.status === 'overdue');
+  const enrolments = citizenUser ? getEnrolmentsByHolder(citizenUser.id).filter(e => e.isActive) : [];
+  const totalOutstanding = outstandingCharges.filter(c => c.status === 'unpaid' || c.status === 'overdue').reduce((sum, c) => sum + c.amount, 0);
 
   if (!account) {
     return (
@@ -44,11 +58,11 @@ const CitizenDashboard: React.FC = () => {
         </p>
       </div>
 
-      {/* Balance Card */}
+      {/* Top Section: Balance Card with Pay Now */}
       <Card className="mb-8 overflow-hidden animate-slide-up">
-        <div className="bg-primary p-6 text-primary-foreground sm:p-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
+        <div className="bg-gradient-to-br from-primary to-primary/80 p-6 text-primary-foreground sm:p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="flex-1">
               <p className="text-sm opacity-90 mb-1">Current Balance</p>
               <p className="text-4xl font-bold sm:text-5xl">{formatCurrency(account.balance)}</p>
               <div className="flex items-center gap-4 mt-3 text-sm opacity-90">
@@ -56,60 +70,115 @@ const CitizenDashboard: React.FC = () => {
                   <TrendingUp className="h-4 w-4" />
                   Last top-up: {account.lastTopUpDate ? formatDate(account.lastTopUpDate) : 'N/A'}
                 </span>
+                <Badge variant="secondary" className="bg-white/20 text-white border-0">
+                  {account.status}
+                </Badge>
               </div>
             </div>
-            <div className="flex flex-col gap-2 sm:items-end">
-              {hasOutstanding && (
-                <Badge variant="warning" className="self-start sm:self-end">
-                  Outstanding charges
-                </Badge>
-              )}
-              <Button variant="secondary" size="lg" asChild className="mt-2">
-                <Link to="/portal/payments">
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  View & Pay
-                </Link>
-              </Button>
-            </div>
+            
+            {/* Outstanding Charges & Pay Now */}
+            {totalOutstanding > 0 && (
+              <div className="flex flex-col items-start lg:items-end gap-3 p-4 rounded-xl bg-white/10 backdrop-blur-sm">
+                <div className="text-right">
+                  <p className="text-sm opacity-90">Outstanding Charges</p>
+                  <p className="text-2xl font-bold">{formatCurrency(totalOutstanding)}</p>
+                  <p className="text-xs opacity-75">{outstandingCharges.filter(c => c.status === 'unpaid' || c.status === 'overdue').length} pending payment(s)</p>
+                </div>
+                <Button 
+                  size="lg" 
+                  variant="secondary" 
+                  className="bg-white text-primary hover:bg-white/90 font-semibold"
+                  asChild
+                >
+                  <Link to="/portal/courses">
+                    <CreditCard className="h-5 w-5 mr-2" />
+                    Pay Now
+                  </Link>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
         <CardContent className="p-4 bg-secondary/30">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Account ID: {account.id}</span>
-            <Badge variant={account.status as any}>{account.status}</Badge>
+            <span className="text-muted-foreground">Opened: {formatDate(account.openedAt)}</span>
           </div>
         </CardContent>
       </Card>
 
-      {/* Outstanding Charges Alert */}
-      {outstandingCharges.length > 0 && (
-        <Card className="mb-8 border-warning/50 bg-warning/5 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning/20">
-                  <Receipt className="h-5 w-5 text-warning" />
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">
-                    You have {outstandingCharges.length} outstanding charge{outstandingCharges.length > 1 ? 's' : ''}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    Total: {formatCurrency(outstandingCharges.reduce((sum, c) => sum + c.amount, 0))}
-                  </p>
-                </div>
-              </div>
-              <Button variant="warning" size="sm" asChild>
-                <Link to="/portal/payments">
-                  Pay Now <ArrowRight className="h-4 w-4 ml-1" />
-                </Link>
-              </Button>
+      {/* Middle Section: Active Courses Table */}
+      <Card className="mb-8 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <BookOpen className="h-5 w-5" />
+            Active Courses
+          </CardTitle>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/portal/courses">
+              View all <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {enrolments.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Course</TableHead>
+                  <TableHead>Monthly Fee</TableHead>
+                  <TableHead>Enrolled</TableHead>
+                  <TableHead className="text-right">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {enrolments.slice(0, 5).map((enrolment) => {
+                  const course = getCourse(enrolment.courseId);
+                  if (!course) return null;
+                  const hasCharge = outstandingCharges.some(c => c.courseId === course.id && (c.status === 'unpaid' || c.status === 'overdue'));
+                  
+                  return (
+                    <TableRow key={enrolment.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                            <BookOpen className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{course.name}</p>
+                            <p className="text-xs text-muted-foreground">{course.code}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium">{formatCurrency(course.monthlyFee)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Calendar className="h-3 w-3" />
+                          {formatDate(enrolment.startDate)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {hasCharge ? (
+                          <Badge variant="warning">Payment Due</Badge>
+                        ) : (
+                          <Badge variant="success">Paid</Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8">
+              <BookOpen className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+              <p className="text-muted-foreground">No active courses</p>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Recent Transactions */}
+      {/* Bottom Section: Recent Transactions */}
       <Card className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -133,12 +202,12 @@ const CitizenDashboard: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
                       txn.type === 'top_up' ? 'bg-success/10' : 
-                      txn.type === 'payment' ? 'bg-info/10' : 'bg-destructive/10'
+                      txn.type === 'payment' ? 'bg-success/10' : 'bg-destructive/10'
                     }`}>
                       {txn.type === 'top_up' ? (
                         <TrendingUp className="h-5 w-5 text-success" />
                       ) : txn.type === 'payment' ? (
-                        <CreditCard className="h-5 w-5 text-info" />
+                        <CreditCard className="h-5 w-5 text-success" />
                       ) : (
                         <Receipt className="h-5 w-5 text-destructive" />
                       )}
@@ -149,8 +218,10 @@ const CitizenDashboard: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={`font-semibold ${txn.amount > 0 ? 'text-success' : 'text-foreground'}`}>
-                      {txn.amount > 0 ? '+' : ''}{formatCurrency(txn.amount)}
+                    <p className={`font-semibold ${
+                      txn.type === 'top_up' || txn.type === 'payment' ? 'text-success' : 'text-destructive'
+                    }`}>
+                      {txn.type === 'top_up' ? '+' : txn.type === 'charge' ? '-' : ''}{formatCurrency(Math.abs(txn.amount))}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Bal: {formatCurrency(txn.balanceAfter)}
