@@ -23,7 +23,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Home', href: '/portal', icon: Home },
   { label: 'Transactions', href: '/portal/transactions', icon: Receipt },
-  { label: 'Payments', href: '/portal/payments', icon: CreditCard },
+  { label: 'Courses', href: '/portal/courses', icon: CreditCard },
   { label: 'My Details', href: '/portal/profile', icon: User },
 ];
 

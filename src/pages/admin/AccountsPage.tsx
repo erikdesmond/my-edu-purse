@@ -255,31 +255,19 @@ const AccountsPage: React.FC = () => {
                   onChange={(e) => setAddress(e.target.value)}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="schooling">Schooling Status</Label>
-                  <Select value={schoolingStatus} onValueChange={(v) => setSchoolingStatus(v as SchoolingStatus)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="in_school">In School</SelectItem>
-                      <SelectItem value="graduated">Graduated</SelectItem>
-                      <SelectItem value="deferred">Deferred</SelectItem>
-                      <SelectItem value="dropped_out">Dropped Out</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="balance">Initial Balance (SGD)</Label>
-                  <Input 
-                    id="balance" 
-                    type="number"
-                    placeholder="0.00"
-                    value={initialBalance}
-                    onChange={(e) => setInitialBalance(e.target.value)}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="schooling">Schooling Status</Label>
+                <Select value={schoolingStatus} onValueChange={(v) => setSchoolingStatus(v as SchoolingStatus)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="in_school">In School</SelectItem>
+                    <SelectItem value="graduated">Graduated</SelectItem>
+                    <SelectItem value="deferred">Deferred</SelectItem>
+                    <SelectItem value="dropped_out">Dropped Out</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <DialogFooter>
