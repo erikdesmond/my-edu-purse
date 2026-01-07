@@ -34,15 +34,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { label: 'Education Accounts', href: '/admin/accounts', icon: Wallet },
-  { 
-    label: 'Top-ups', 
-    href: '/admin/topups', 
-    icon: CreditCard,
-    children: [
-      { label: 'Single Top-up', href: '/admin/topups/single' },
-      { label: 'Batch Top-up', href: '/admin/topups/batch' },
-    ]
-  },
+  { label: 'Top-up Management', href: '/admin/topups', icon: CreditCard },
   { 
     label: 'Courses', 
     href: '/admin/courses', 

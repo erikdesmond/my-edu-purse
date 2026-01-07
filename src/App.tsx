@@ -13,9 +13,8 @@ import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AccountsPage from "./pages/admin/AccountsPage";
 import AccountDetailPage from "./pages/admin/AccountDetailPage";
-import CoursesPage from "./pages/admin/CoursesPage";
-import SingleTopUpPage from "./pages/admin/SingleTopUpPage";
-import BatchTopUpPage from "./pages/admin/BatchTopUpPage";
+import AdminCoursesPage from "./pages/admin/CoursesPage";
+import TopUpManagementPage from "./pages/admin/TopUpManagementPage";
 import ReportsPage from "./pages/admin/ReportsPage";
 import AuditLogPage from "./pages/admin/AuditLogPage";
 import UserManagementPage from "./pages/admin/UserManagementPage";
@@ -25,7 +24,7 @@ import FeeRunPage from "./pages/admin/FeeRunPage";
 // Citizen Pages
 import CitizenDashboard from "./pages/citizen/CitizenDashboard";
 import TransactionsPage from "./pages/citizen/TransactionsPage";
-import PaymentsPage from "./pages/citizen/PaymentsPage";
+import CitizenCoursesPage from "./pages/citizen/CoursesPage";
 import ProfilePage from "./pages/citizen/ProfilePage";
 
 const queryClient = new QueryClient();
@@ -67,11 +66,10 @@ const AppRoutes = () => {
       <Route path="/admin" element={<ProtectedRoute portal="admin"><AdminDashboard /></ProtectedRoute>} />
       <Route path="/admin/accounts" element={<ProtectedRoute portal="admin"><AccountsPage /></ProtectedRoute>} />
       <Route path="/admin/accounts/:accountId" element={<ProtectedRoute portal="admin"><AccountDetailPage /></ProtectedRoute>} />
-      <Route path="/admin/courses" element={<ProtectedRoute portal="admin"><CoursesPage /></ProtectedRoute>} />
+      <Route path="/admin/courses" element={<ProtectedRoute portal="admin"><AdminCoursesPage /></ProtectedRoute>} />
       <Route path="/admin/courses/enrolments" element={<ProtectedRoute portal="admin"><EnrolmentsPage /></ProtectedRoute>} />
       <Route path="/admin/courses/fee-run" element={<ProtectedRoute portal="admin"><FeeRunPage /></ProtectedRoute>} />
-      <Route path="/admin/topups/single" element={<ProtectedRoute portal="admin"><SingleTopUpPage /></ProtectedRoute>} />
-      <Route path="/admin/topups/batch" element={<ProtectedRoute portal="admin"><BatchTopUpPage /></ProtectedRoute>} />
+      <Route path="/admin/topups" element={<ProtectedRoute portal="admin"><TopUpManagementPage /></ProtectedRoute>} />
       <Route path="/admin/reports" element={<ProtectedRoute portal="admin"><ReportsPage /></ProtectedRoute>} />
       <Route path="/admin/audit" element={<ProtectedRoute portal="admin"><AuditLogPage /></ProtectedRoute>} />
       <Route path="/admin/users" element={<ProtectedRoute portal="admin"><UserManagementPage /></ProtectedRoute>} />
@@ -79,7 +77,7 @@ const AppRoutes = () => {
       {/* Citizen Portal Routes */}
       <Route path="/portal" element={<ProtectedRoute portal="citizen"><CitizenDashboard /></ProtectedRoute>} />
       <Route path="/portal/transactions" element={<ProtectedRoute portal="citizen"><TransactionsPage /></ProtectedRoute>} />
-      <Route path="/portal/payments" element={<ProtectedRoute portal="citizen"><PaymentsPage /></ProtectedRoute>} />
+      <Route path="/portal/courses" element={<ProtectedRoute portal="citizen"><CitizenCoursesPage /></ProtectedRoute>} />
       <Route path="/portal/profile" element={<ProtectedRoute portal="citizen"><ProfilePage /></ProtectedRoute>} />
       
       {/* Catch-all */}
