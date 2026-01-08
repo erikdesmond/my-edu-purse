@@ -43,6 +43,8 @@ export interface Course {
   paymentType?: PaymentType;
   billingCycle?: BillingCycle;
   durationMonths?: number;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface Enrolment {
@@ -143,14 +145,14 @@ export const educationAccounts: EducationAccount[] = [
 
 // Demo Courses with payment types
 export const courses: Course[] = [
-  { id: 'CRS001', code: 'IT101', name: 'Introduction to Programming', monthlyFee: 150.00, description: 'Basic programming concepts and Python', isActive: true, paymentType: 'recurring', billingCycle: 'monthly', durationMonths: 6 },
-  { id: 'CRS002', code: 'BUS201', name: 'Business Management', monthlyFee: 200.00, description: 'Fundamentals of business operations', isActive: true, paymentType: 'recurring', billingCycle: 'quarterly', durationMonths: 12 },
-  { id: 'CRS003', code: 'ENG102', name: 'English Communication', monthlyFee: 50.00, description: 'Professional English writing and speaking', isActive: true, paymentType: 'recurring', billingCycle: 'monthly', durationMonths: 3 },
-  { id: 'CRS004', code: 'ACC301', name: 'Financial Accounting', monthlyFee: 180.00, description: 'Accounting principles and practices', isActive: true, paymentType: 'recurring', billingCycle: 'bi_annually', durationMonths: 12 },
-  { id: 'CRS005', code: 'DES101', name: 'Graphic Design Basics', monthlyFee: 175.00, description: 'Introduction to visual design', isActive: true, paymentType: 'one_time', durationMonths: 3 },
-  { id: 'CRS006', code: 'MKT201', name: 'Digital Marketing', monthlyFee: 160.00, description: 'Online marketing strategies', isActive: true, paymentType: 'recurring', billingCycle: 'monthly', durationMonths: 4 },
-  { id: 'CRS007', code: 'DATA101', name: 'Data Analytics', monthlyFee: 220.00, description: 'Data analysis and visualization', isActive: true, paymentType: 'recurring', billingCycle: 'monthly', durationMonths: 6 },
-  { id: 'CRS008', code: 'WEB201', name: 'Web Development', monthlyFee: 190.00, description: 'Modern web technologies', isActive: false, paymentType: 'recurring', billingCycle: 'annually', durationMonths: 12 },
+  { id: 'CRS001', code: 'IT101', name: 'Introduction to Programming', monthlyFee: 150.00, description: 'Basic programming concepts and Python', isActive: true, paymentType: 'recurring', billingCycle: 'monthly', durationMonths: 6, startDate: '2024-01-01', endDate: '2024-06-30' },
+  { id: 'CRS002', code: 'BUS201', name: 'Business Management', monthlyFee: 200.00, description: 'Fundamentals of business operations', isActive: true, paymentType: 'recurring', billingCycle: 'quarterly', durationMonths: 12, startDate: '2024-01-01', endDate: '2024-12-31' },
+  { id: 'CRS003', code: 'ENG102', name: 'English Communication', monthlyFee: 50.00, description: 'Professional English writing and speaking', isActive: true, paymentType: 'recurring', billingCycle: 'monthly', durationMonths: 3, startDate: '2024-01-01', endDate: '2024-03-31' },
+  { id: 'CRS004', code: 'ACC301', name: 'Financial Accounting', monthlyFee: 180.00, description: 'Accounting principles and practices', isActive: true, paymentType: 'recurring', billingCycle: 'bi_annually', durationMonths: 12, startDate: '2024-01-01', endDate: '2024-12-31' },
+  { id: 'CRS005', code: 'DES101', name: 'Graphic Design Basics', monthlyFee: 175.00, description: 'Introduction to visual design', isActive: true, paymentType: 'one_time', durationMonths: 3, startDate: '2024-07-01', endDate: '2024-09-30' },
+  { id: 'CRS006', code: 'MKT201', name: 'Digital Marketing', monthlyFee: 160.00, description: 'Online marketing strategies', isActive: true, paymentType: 'recurring', billingCycle: 'monthly', durationMonths: 4, startDate: '2024-05-01', endDate: '2024-08-31' },
+  { id: 'CRS007', code: 'DATA101', name: 'Data Analytics', monthlyFee: 220.00, description: 'Data analysis and visualization', isActive: true, paymentType: 'recurring', billingCycle: 'monthly', durationMonths: 6, startDate: '2024-10-01', endDate: '2025-03-31' },
+  { id: 'CRS008', code: 'WEB201', name: 'Web Development', monthlyFee: 190.00, description: 'Modern web technologies', isActive: false, paymentType: 'recurring', billingCycle: 'annually', durationMonths: 12, startDate: '2024-01-01', endDate: '2024-12-31' },
 ];
 
 // Demo Enrolments - AH001 has more courses to demonstrate payment scenarios
