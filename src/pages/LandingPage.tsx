@@ -13,12 +13,12 @@ const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { loginAsAdmin, loginAsCitizen } = useAuth();
   
-  const [adminEmail, setAdminEmail] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
+  const [adminEmail, setAdminEmail] = useState('admin@moe.gov.sg');
+  const [adminPassword, setAdminPassword] = useState('demo123');
   const [adminError, setAdminError] = useState('');
   
-  const [citizenEmail, setCitizenEmail] = useState('');
-  const [citizenPassword, setCitizenPassword] = useState('');
+  const [citizenEmail, setCitizenEmail] = useState('weiming.tan@email.com');
+  const [citizenPassword, setCitizenPassword] = useState('demo123');
   const [citizenError, setCitizenError] = useState('');
 
   const handleAdminLogin = (e: React.FormEvent) => {
