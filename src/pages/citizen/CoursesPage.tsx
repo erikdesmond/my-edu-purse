@@ -65,7 +65,7 @@ const CoursesPage: React.FC = () => {
   const [paymentResult, setPaymentResult] = useState<'success' | 'error' | null>(null);
 
   const activeEnrolments = enrolments.filter(e => e.isActive);
-  const pendingCharges = outstandingCharges.filter(c => c.status === 'unpaid' || c.status === 'overdue');
+  const pendingCharges = outstandingCharges.filter(c => c.status === 'unpaid' || c.status === 'pending');
 
   const selectedTotal = selectedCharges.reduce((sum, id) => {
     const charge = pendingCharges.find(c => c.id === id);
@@ -245,8 +245,8 @@ const CoursesPage: React.FC = () => {
                         <div className="flex items-center gap-3">
                           {hasPendingPayment ? (
                             <>
-                              <Badge variant={charge?.status === 'overdue' ? 'destructive' : 'warning'}>
-                                {charge?.status === 'overdue' ? 'Overdue' : 'Payment Due'}
+                              <Badge variant="warning">
+                                Pending Payment
                               </Badge>
                               <Button size="sm" onClick={() => handlePayNow(charge?.id)}>
                                 Pay Now
@@ -310,8 +310,8 @@ const CoursesPage: React.FC = () => {
                           <TableCell>{charge.period}</TableCell>
                           <TableCell>{formatDate(charge.dueDate)}</TableCell>
                           <TableCell>
-                            <Badge variant={charge.status === 'overdue' ? 'destructive' : 'warning'}>
-                              {charge.status === 'overdue' ? 'Overdue' : 'Unpaid'}
+                            <Badge variant="warning">
+                              Pending Payment
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right font-semibold">

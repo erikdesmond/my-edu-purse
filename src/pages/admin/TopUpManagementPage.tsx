@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Eye, Search, X, Calendar as CalendarIcon, Upload, TrendingUp, DollarSign, Clock, Download } from 'lucide-react';
+import { Play, Eye, Search, X, Calendar as CalendarIcon, Upload, TrendingUp, DollarSign, Clock, Download, Filter, Users, Hash, BarChart3 } from 'lucide-react';
 import { AdminLayout } from '@/components/layouts/AdminLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -54,7 +55,7 @@ import {
 } from '@/lib/dataStore';
 import { formatCurrency, formatDateTime, formatDate } from '@/lib/data';
 import { cn } from '@/lib/utils';
-import { format, startOfWeek, startOfMonth, startOfQuarter, startOfYear } from 'date-fns';
+import { format, startOfMonth, startOfWeek, startOfQuarter, startOfYear } from 'date-fns';
 
 const TopUpManagementPage: React.FC = () => {
   const educationAccounts = useDataStore(getEducationAccounts);
@@ -64,6 +65,14 @@ const TopUpManagementPage: React.FC = () => {
   const [individualDialogOpen, setIndividualDialogOpen] = useState(false);
   const [batchDialogOpen, setBatchDialogOpen] = useState(false);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  
+  // Filter states
+  const [transactionType, setTransactionType] = useState<'all' | 'individual' | 'batch'>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   
   // Individual top-up states
   const [searchQuery, setSearchQuery] = useState('');
@@ -94,33 +103,38 @@ const TopUpManagementPage: React.FC = () => {
     scheduled?: boolean;
   } | null>(null);
 
-  // Calculate top-up statistics
+  // Calculate statistics
   const now = new Date();
-  const topUpTransactions = transactions.filter(t => t.type === 'top_up' && t.status === 'completed');
-  
-  const todayStr = now.toISOString().split('T')[0];
-  const todayTopUps = topUpTransactions.filter(t => t.createdAt.startsWith(todayStr));
-  const todayTotal = todayTopUps.reduce((sum, t) => sum + t.amount, 0);
-  
-  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-  const weekTopUps = topUpTransactions.filter(t => new Date(t.createdAt) >= weekStart);
-  const weekTotal = weekTopUps.reduce((sum, t) => sum + t.amount, 0);
-  
   const monthStart = startOfMonth(now);
-  const monthTopUps = topUpTransactions.filter(t => new Date(t.createdAt) >= monthStart);
-  const monthTotal = monthTopUps.reduce((sum, t) => sum + t.amount, 0);
-  
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const quarterStart = startOfQuarter(now);
-  const quarterTopUps = topUpTransactions.filter(t => new Date(t.createdAt) >= quarterStart);
-  const quarterTotal = quarterTopUps.reduce((sum, t) => sum + t.amount, 0);
-  
   const yearStart = startOfYear(now);
-  const yearTopUps = topUpTransactions.filter(t => new Date(t.createdAt) >= yearStart);
-  const yearTotal = yearTopUps.reduce((sum, t) => sum + t.amount, 0);
-
-  // Get scheduled/upcoming top-ups
-  const scheduledTopUps = transactions.filter(t => t.type === 'top_up' && t.status === 'pending');
-  const scheduledBatches = batches.filter(b => b.type === 'top_up' && b.status === 'pending');
+  
+  const topUpTransactions = transactions.filter(t => t.type === 'top_up');
+  const completedTopUps = topUpTransactions.filter(t => t.status === 'completed');
+  const scheduledTopUps = topUpTransactions.filter(t => t.status === 'pending');
+  
+  // This month stats
+  const monthTopUps = completedTopUps.filter(t => new Date(t.createdAt) >= monthStart);
+  const monthTotal = monthTopUps.reduce((sum, t) => sum + t.amount, 0);
+  const monthScheduled = scheduledTopUps.filter(t => new Date(t.createdAt) >= monthStart);
+  
+  // Individual vs Batch breakdown (simulated based on reference pattern)
+  const individualTopUps = completedTopUps.filter(t => t.reference?.startsWith('INDIV') || t.reference?.startsWith('MAN'));
+  const batchTopUpsTxns = completedTopUps.filter(t => t.reference?.startsWith('BAT') || t.reference?.startsWith('AES') || t.reference?.startsWith('YEG'));
+  
+  const monthIndividual = individualTopUps.filter(t => new Date(t.createdAt) >= monthStart);
+  const monthIndividualTotal = monthIndividual.reduce((sum, t) => sum + t.amount, 0);
+  const monthIndividualAccounts = new Set(monthIndividual.map(t => t.accountId)).size;
+  
+  const monthBatch = batchTopUpsTxns.filter(t => new Date(t.createdAt) >= monthStart);
+  const monthBatchTotal = monthBatch.reduce((sum, t) => sum + t.amount, 0);
+  const monthBatchAccounts = new Set(monthBatch.map(t => t.accountId)).size;
+  
+  // Batch records
+  const topUpBatches = batches.filter(b => b.type === 'top_up');
+  const monthBatches = topUpBatches.filter(b => new Date(b.createdAt) >= monthStart);
+  const scheduledBatches = topUpBatches.filter(b => b.status === 'pending');
 
   const filteredAccounts = educationAccounts.filter(account => {
     const holder = getAccountHolder(account.holderId);
@@ -149,12 +163,42 @@ const TopUpManagementPage: React.FC = () => {
     });
   };
 
+  // Filter transactions for display
+  const getFilteredTransactions = (type: 'individual' | 'batch') => {
+    let filtered = topUpTransactions;
+    
+    if (type === 'individual') {
+      filtered = filtered.filter(t => t.reference?.startsWith('INDIV') || t.reference?.startsWith('MAN') || !t.reference?.startsWith('BAT'));
+    } else {
+      filtered = filtered.filter(t => t.reference?.startsWith('BAT') || t.reference?.startsWith('AES') || t.reference?.startsWith('YEG'));
+    }
+    
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(t => t.status === statusFilter);
+    }
+    
+    if (dateFrom) {
+      filtered = filtered.filter(t => new Date(t.createdAt) >= dateFrom);
+    }
+    
+    if (dateTo) {
+      filtered = filtered.filter(t => new Date(t.createdAt) <= dateTo);
+    }
+    
+    return filtered;
+  };
+
   const handleSelectAccount = (accountId: string, checked: boolean) => {
     if (checked) {
       setSelectedAccountIds([...selectedAccountIds, accountId]);
     } else {
       setSelectedAccountIds(selectedAccountIds.filter(id => id !== accountId));
     }
+  };
+
+  const handleViewDetails = (txn: any) => {
+    setSelectedTransaction(txn);
+    setDetailsDialogOpen(true);
   };
 
   const handleIndividualTopUp = () => {
@@ -371,7 +415,6 @@ const TopUpManagementPage: React.FC = () => {
   };
 
   const eligibleAccounts = getEligibleAccounts();
-  const topUpBatches = batches.filter(b => b.type === 'top_up');
 
   return (
     <AdminLayout>
@@ -380,44 +423,78 @@ const TopUpManagementPage: React.FC = () => {
         description="Manage individual and batch top-ups"
       />
 
-      {/* Optimized Mini Dashboard */}
-      <Card className="mb-6">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Top-up Summary
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="text-center p-3 rounded-lg bg-secondary/50">
-              <p className="text-xs text-muted-foreground mb-1">Today</p>
-              <p className="text-lg font-bold text-primary">{formatCurrency(todayTotal)}</p>
-              <p className="text-xs text-muted-foreground">{todayTopUps.length} top-ups</p>
+      {/* Mini Dashboard */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <Hash className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Top-ups This Month</p>
+                <p className="text-xl font-bold">{monthTopUps.length}</p>
+              </div>
             </div>
-            <div className="text-center p-3 rounded-lg bg-secondary/50">
-              <p className="text-xs text-muted-foreground mb-1">This Week</p>
-              <p className="text-lg font-bold text-primary">{formatCurrency(weekTotal)}</p>
-              <p className="text-xs text-muted-foreground">{weekTopUps.length} top-ups</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10">
+                <Clock className="h-5 w-5 text-warning" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Scheduled This Month</p>
+                <p className="text-xl font-bold">{monthScheduled.length + scheduledBatches.length}</p>
+              </div>
             </div>
-            <div className="text-center p-3 rounded-lg bg-secondary/50">
-              <p className="text-xs text-muted-foreground mb-1">This Month</p>
-              <p className="text-lg font-bold text-primary">{formatCurrency(monthTotal)}</p>
-              <p className="text-xs text-muted-foreground">{monthTopUps.length} top-ups</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10">
+                <DollarSign className="h-5 w-5 text-success" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Total Amount (Month)</p>
+                <p className="text-xl font-bold">{formatCurrency(monthTotal)}</p>
+              </div>
             </div>
-            <div className="text-center p-3 rounded-lg bg-secondary/50">
-              <p className="text-xs text-muted-foreground mb-1">This Quarter</p>
-              <p className="text-lg font-bold text-primary">{formatCurrency(quarterTotal)}</p>
-              <p className="text-xs text-muted-foreground">{quarterTopUps.length} top-ups</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col gap-1">
+              <p className="text-xs text-muted-foreground font-medium">Individual Top-ups</p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-lg font-bold">{formatCurrency(monthIndividualTotal)}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {monthIndividual.length} times • {monthIndividualAccounts} accounts
+              </p>
             </div>
-            <div className="text-center p-3 rounded-lg bg-secondary/50">
-              <p className="text-xs text-muted-foreground mb-1">This Year</p>
-              <p className="text-lg font-bold text-primary">{formatCurrency(yearTotal)}</p>
-              <p className="text-xs text-muted-foreground">{yearTopUps.length} top-ups</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col gap-1">
+              <p className="text-xs text-muted-foreground font-medium">Batch Top-ups</p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-lg font-bold">{formatCurrency(monthBatchTotal)}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {monthBatches.length} batches • {monthBatchAccounts} accounts
+              </p>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Action Buttons */}
       <div className="grid gap-4 md:grid-cols-2 mb-6">
@@ -462,7 +539,7 @@ const TopUpManagementPage: React.FC = () => {
         </Card>
       </div>
 
-      {/* Scheduled/Upcoming Top-ups */}
+      {/* Upcoming Top-ups */}
       {(scheduledTopUps.length > 0 || scheduledBatches.length > 0) && (
         <Card className="mb-6">
           <CardHeader>
@@ -522,12 +599,12 @@ const TopUpManagementPage: React.FC = () => {
         </Card>
       )}
 
-      {/* Top-up Transactions Report */}
-      <Card className="mb-6">
+      {/* Top-up Transactions - Tabbed */}
+      <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Top-up Transactions</CardTitle>
-            <CardDescription>Detailed list of all top-up transactions</CardDescription>
+            <CardDescription>View and filter all top-up records</CardDescription>
           </div>
           <Button variant="outline" onClick={() => handleExport('top-up')}>
             <Download className="h-4 w-4 mr-2" />
@@ -535,76 +612,180 @@ const TopUpManagementPage: React.FC = () => {
           </Button>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Transaction ID</TableHead>
-                <TableHead>Account</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead>Reference</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {topUpTransactions.slice(0, 20).map(txn => {
-                const account = getEducationAccount(txn.accountId);
-                const holder = account ? getAccountHolder(account.holderId) : null;
+          {/* Filters */}
+          <div className="flex flex-wrap gap-4 mb-6">
+            <div className="flex items-center gap-2">
+              <Label className="text-sm">From:</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "w-[130px] justify-start text-left font-normal",
+                      !dateFrom && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateFrom ? format(dateFrom, "PP") : "Start"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={dateFrom}
+                    onSelect={setDateFrom}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-sm">To:</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "w-[130px] justify-start text-left font-normal",
+                      !dateTo && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateTo ? format(dateTo, "PP") : "End"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={dateTo}
+                    onSelect={setDateTo}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="pending">Scheduled</SelectItem>
+                <SelectItem value="failed">Failed</SelectItem>
+              </SelectContent>
+            </Select>
+            {(dateFrom || dateTo || statusFilter !== 'all') && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => {
+                  setDateFrom(undefined);
+                  setDateTo(undefined);
+                  setStatusFilter('all');
+                }}
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear
+              </Button>
+            )}
+          </div>
 
-                return (
-                  <TableRow key={txn.id}>
-                    <TableCell>{formatDateTime(txn.createdAt)}</TableCell>
-                    <TableCell className="font-mono text-sm">{txn.id}</TableCell>
-                    <TableCell>
-                      {holder ? `${holder.firstName} ${holder.lastName}` : txn.accountId}
-                    </TableCell>
-                    <TableCell>{txn.description}</TableCell>
-                    <TableCell className="text-right font-semibold text-success">
-                      +{formatCurrency(txn.amount)}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{txn.reference}</TableCell>
+          <Tabs defaultValue="individual" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="individual">Individual Top-ups</TabsTrigger>
+              <TabsTrigger value="batch">Batch Top-ups</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="individual">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Transaction ID</TableHead>
+                    <TableHead>Account</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead></TableHead>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {getFilteredTransactions('individual').slice(0, 20).map(txn => {
+                    const account = getEducationAccount(txn.accountId);
+                    const holder = account ? getAccountHolder(account.holderId) : null;
 
-      {/* Recent Batches */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Top-up History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Batch ID</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Accounts</TableHead>
-                <TableHead className="text-right">Total Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {topUpBatches.slice(0, 10).map(batch => (
-                <TableRow key={batch.id}>
-                  <TableCell className="font-mono">{batch.id}</TableCell>
-                  <TableCell>{batch.description}</TableCell>
-                  <TableCell>{batch.accountCount}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(batch.totalAmount)}</TableCell>
-                  <TableCell>
-                    <Badge variant={batch.status === 'completed' ? 'success' : batch.status === 'pending' ? 'warning' : 'destructive'}>
-                      {batch.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{formatDateTime(batch.createdAt)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    return (
+                      <TableRow key={txn.id}>
+                        <TableCell>{formatDateTime(txn.createdAt)}</TableCell>
+                        <TableCell className="font-mono text-sm">{txn.id}</TableCell>
+                        <TableCell>
+                          {holder ? `${holder.firstName} ${holder.lastName}` : txn.accountId}
+                        </TableCell>
+                        <TableCell>{txn.description}</TableCell>
+                        <TableCell className="text-right font-semibold text-success">
+                          +{formatCurrency(txn.amount)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={txn.status === 'completed' ? 'success' : txn.status === 'pending' ? 'warning' : 'destructive'}>
+                            {txn.status === 'pending' ? 'Scheduled' : txn.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm" onClick={() => handleViewDetails(txn)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TabsContent>
+
+            <TabsContent value="batch">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Batch ID</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Accounts</TableHead>
+                    <TableHead className="text-right">Total Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {topUpBatches.map(batch => (
+                    <TableRow key={batch.id}>
+                      <TableCell>{formatDateTime(batch.createdAt)}</TableCell>
+                      <TableCell className="font-mono text-sm">{batch.id}</TableCell>
+                      <TableCell>{batch.description}</TableCell>
+                      <TableCell>{batch.accountCount}</TableCell>
+                      <TableCell className="text-right font-semibold text-success">
+                        +{formatCurrency(batch.totalAmount)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={batch.status === 'completed' ? 'success' : batch.status === 'pending' ? 'warning' : 'destructive'}>
+                          {batch.status === 'pending' ? 'Scheduled' : batch.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm" onClick={() => handleViewDetails(batch)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
@@ -739,6 +920,7 @@ const TopUpManagementPage: React.FC = () => {
                       selected={scheduledDate}
                       onSelect={setScheduledDate}
                       initialFocus
+                      className="p-3 pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
@@ -758,7 +940,7 @@ const TopUpManagementPage: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Batch Top-up Dialog - Simplified */}
+      {/* Batch Top-up Dialog */}
       <Dialog open={batchDialogOpen} onOpenChange={setBatchDialogOpen}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -905,6 +1087,7 @@ const TopUpManagementPage: React.FC = () => {
                       selected={batchScheduledDate}
                       onSelect={setBatchScheduledDate}
                       initialFocus
+                      className="p-3 pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
@@ -919,31 +1102,23 @@ const TopUpManagementPage: React.FC = () => {
 
             {showPreview && eligibleAccounts.length > 0 && (
               <div className="border rounded-lg max-h-40 overflow-y-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Account</TableHead>
-                      <TableHead>Current Balance</TableHead>
-                      <TableHead className="text-right">Top-up Amount</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {eligibleAccounts.slice(0, 10).map(account => {
-                      const holder = getAccountHolder(account.holderId);
-                      const topUpAmount = batchAmountType === 'even' 
-                        ? parseFloat(batchAmount || '0') / eligibleAccounts.length 
-                        : parseFloat(batchAmount || '0');
-                      
-                      return (
-                        <TableRow key={account.id}>
-                          <TableCell>{holder?.firstName} {holder?.lastName}</TableCell>
-                          <TableCell>{formatCurrency(account.balance)}</TableCell>
-                          <TableCell className="text-right text-success">+{formatCurrency(topUpAmount)}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                {eligibleAccounts.slice(0, 10).map(account => {
+                  const holder = getAccountHolder(account.holderId);
+                  return (
+                    <div key={account.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
+                      <div>
+                        <p className="font-medium">{holder?.firstName} {holder?.lastName}</p>
+                        <p className="text-sm text-muted-foreground">{account.id}</p>
+                      </div>
+                      <span className="text-sm">{formatCurrency(account.balance)}</span>
+                    </div>
+                  );
+                })}
+                {eligibleAccounts.length > 10 && (
+                  <div className="p-3 text-center text-sm text-muted-foreground">
+                    ...and {eligibleAccounts.length - 10} more accounts
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -962,52 +1137,99 @@ const TopUpManagementPage: React.FC = () => {
 
       {/* Success Dialog */}
       <Dialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="h-10 w-10 rounded-full bg-success/20 flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-success" />
-              </div>
-              Top-up {successResult?.scheduled ? 'Scheduled' : 'Successful'}
+            <DialogTitle className="text-success">
+              {successResult?.scheduled ? 'Top-up Scheduled' : 'Top-up Successful'}
             </DialogTitle>
+            <DialogDescription>
+              {successResult?.type === 'individual' 
+                ? `Successfully ${successResult?.scheduled ? 'scheduled' : 'topped up'} ${successResult?.count} account(s)`
+                : `Successfully ${successResult?.scheduled ? 'scheduled' : 'processed'} batch top-up for ${successResult?.count} accounts`}
+            </DialogDescription>
           </DialogHeader>
-          
-          {successResult && (
-            <div className="py-4 space-y-4">
-              <div className="text-center">
-                <p className="text-3xl font-bold text-success">{formatCurrency(successResult.total)}</p>
-                <p className="text-muted-foreground">
-                  {successResult.scheduled ? 'Scheduled for' : 'Credited to'} {successResult.count} account(s)
-                </p>
-              </div>
-              
-              <div className="bg-secondary/50 rounded-lg p-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Type</span>
-                  <span className="font-medium capitalize">{successResult.type}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Accounts</span>
-                  <span className="font-medium">{successResult.count}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total Amount</span>
-                  <span className="font-medium">{formatCurrency(successResult.total)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Status</span>
-                  <Badge variant={successResult.scheduled ? 'warning' : 'success'}>
-                    {successResult.scheduled ? 'Scheduled' : 'Completed'}
-                  </Badge>
-                </div>
-              </div>
+          <div className="py-6 text-center">
+            <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-success/10 mb-4">
+              <DollarSign className="h-8 w-8 text-success" />
             </div>
-          )}
-
+            <p className="text-2xl font-bold">{successResult && formatCurrency(successResult.total)}</p>
+            <p className="text-muted-foreground">Total Amount</p>
+          </div>
           <DialogFooter>
             <Button onClick={() => setSuccessDialogOpen(false)} className="w-full">
               Done
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Transaction Details Dialog */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Top-up Details</DialogTitle>
+          </DialogHeader>
+          {selectedTransaction && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">ID</p>
+                  <p className="font-mono">{selectedTransaction.id}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge variant={selectedTransaction.status === 'completed' ? 'success' : selectedTransaction.status === 'pending' ? 'warning' : 'destructive'}>
+                    {selectedTransaction.status === 'pending' ? 'Scheduled' : selectedTransaction.status}
+                  </Badge>
+                </div>
+              </div>
+              
+              <div>
+                <p className="text-sm text-muted-foreground">Description / Reason</p>
+                <p className="font-medium">{selectedTransaction.description}</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedTransaction.accountCount ? 'Total Accounts' : 'Account'}
+                  </p>
+                  <p className="font-medium">
+                    {selectedTransaction.accountCount || selectedTransaction.accountId}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedTransaction.totalAmount ? 'Total Amount' : 'Amount'}
+                  </p>
+                  <p className="font-medium text-success">
+                    +{formatCurrency(selectedTransaction.totalAmount || selectedTransaction.amount)}
+                  </p>
+                </div>
+              </div>
+              
+              <div>
+                <p className="text-sm text-muted-foreground">Created At</p>
+                <p className="font-medium">{formatDateTime(selectedTransaction.createdAt)}</p>
+              </div>
+              
+              {selectedTransaction.reference && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Reference</p>
+                  <p className="font-mono text-sm">{selectedTransaction.reference}</p>
+                </div>
+              )}
+              
+              {selectedTransaction.createdBy && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Created By</p>
+                  <p className="font-medium">{selectedTransaction.createdBy}</p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setDetailsDialogOpen(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -92,11 +92,11 @@ const AccountDetailPage: React.FC = () => {
     return true;
   });
 
-  // Get payment status for each course
-  const getCoursePaymentStatus = (courseId: string): 'paid' | 'unpaid' | 'overdue' => {
+  // Get payment status for each course (only Paid, Pending Payment, Unpaid)
+  const getCoursePaymentStatus = (courseId: string): 'paid' | 'pending' | 'unpaid' => {
     const charge = outstandingCharges.find(c => c.courseId === courseId);
     if (!charge) return 'paid';
-    return charge.status === 'overdue' ? 'overdue' : 'unpaid';
+    return 'pending';
   };
 
   return (
@@ -138,23 +138,23 @@ const AccountDetailPage: React.FC = () => {
           variant="primary"
         />
         <StatCard
-          title="Total Money In"
-          value={formatCurrency(overallMoneyIn)}
-          subtitle={`${transactions.filter(t => t.amount > 0).length} transactions`}
+          title="Total Top-ups Received"
+          value={formatCurrency(totalTopUps)}
+          subtitle={`Since ${formatDate(account.openedAt)}`}
           icon={<TrendingUp className="h-5 w-5" />}
           variant="success"
         />
         <StatCard
-          title="Total Money Out"
-          value={formatCurrency(overallMoneyOut)}
-          subtitle={`${transactions.filter(t => t.amount < 0).length} transactions`}
+          title="Balance Spent"
+          value={formatCurrency(totalCharges)}
+          subtitle="Paid via account balance"
           icon={<TrendingDown className="h-5 w-5" />}
           variant="warning"
         />
         <StatCard
-          title="Overall Balance"
-          value={formatCurrency(overallMoneyIn - overallMoneyOut)}
-          subtitle={`Since ${formatDate(account.openedAt)}`}
+          title="Online Payments"
+          value={formatCurrency(totalPayments)}
+          subtitle="Paid via online methods"
           icon={<DollarSign className="h-5 w-5" />}
           variant="info"
         />
@@ -265,6 +265,13 @@ const AccountDetailPage: React.FC = () => {
                           Started: {formatDate(enrolment.startDate)}
                           {enrolment.endDate && ` • Ended: ${formatDate(enrolment.endDate)}`}
                         </p>
+                        {charge && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Total Fee: {course && formatCurrency(course.monthlyFee * (course.durationMonths || 1))} • 
+                            Remaining: {formatCurrency(charge.amount)} • 
+                            Next Payment: {formatDate(charge.dueDate)}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="text-right">
@@ -275,13 +282,12 @@ const AccountDetailPage: React.FC = () => {
                         </div>
                         <Badge 
                           variant={
-                            paymentStatus === 'paid' ? 'success' : 
-                            paymentStatus === 'overdue' ? 'destructive' : 'warning'
+                            paymentStatus === 'paid' ? 'success' : 'warning'
                           }
                         >
                           {paymentStatus === 'paid' && 'Paid'}
+                          {paymentStatus === 'pending' && `Pending ${charge ? formatCurrency(charge.amount) : ''}`}
                           {paymentStatus === 'unpaid' && `Unpaid ${charge ? formatCurrency(charge.amount) : ''}`}
-                          {paymentStatus === 'overdue' && `Overdue ${charge ? formatCurrency(charge.amount) : ''}`}
                         </Badge>
                       </div>
                     </div>

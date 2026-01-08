@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Edit, Users, Search, X, Upload, Download, DollarSign } from 'lucide-react';
+import { Plus, Edit, Users, Search, X, Upload, Download, DollarSign, Calendar as CalendarIcon } from 'lucide-react';
 import { AdminLayout } from '@/components/layouts/AdminLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -85,7 +89,8 @@ const CoursesPage: React.FC = () => {
   const [formActive, setFormActive] = useState(true);
   const [formPaymentType, setFormPaymentType] = useState<PaymentType>('recurring');
   const [formBillingCycle, setFormBillingCycle] = useState<BillingCycle>('monthly');
-  const [formDuration, setFormDuration] = useState('');
+  const [formStartDate, setFormStartDate] = useState<Date | undefined>();
+  const [formEndDate, setFormEndDate] = useState<Date | undefined>();
   
   // Student search states
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
@@ -114,22 +119,25 @@ const CoursesPage: React.FC = () => {
     setFormActive(true);
     setFormPaymentType('recurring');
     setFormBillingCycle('monthly');
-    setFormDuration('');
+    setFormStartDate(undefined);
+    setFormEndDate(undefined);
   };
 
   const handleCreateCourse = () => {
-    if (!formCode || !formName || !formFee) {
+    if (!formCode || !formName || !formFee || !formStartDate || !formEndDate) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields.",
+        description: "Please fill in all required fields including start and end dates.",
         variant: "destructive",
       });
       return;
     }
 
-    const durationMonths = formDuration ? parseInt(formDuration) : (
-      formPaymentType === 'recurring' ? BILLING_CYCLE_DURATIONS[formBillingCycle] : 1
-    );
+    // Calculate duration in months from start and end date
+    const startDate = formStartDate;
+    const endDate = formEndDate;
+    const monthsDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
+    const durationMonths = Math.max(1, monthsDiff);
 
     const newCourse = {
       id: `CRS${String(Date.now()).slice(-6)}`,
@@ -137,6 +145,8 @@ const CoursesPage: React.FC = () => {
       name: formName,
       monthlyFee: parseFloat(formFee),
       description: formDescription,
+      startDate: formStartDate.toISOString().split('T')[0],
+      endDate: formEndDate.toISOString().split('T')[0],
       isActive: formActive,
       paymentType: formPaymentType,
       billingCycle: formPaymentType === 'recurring' ? formBillingCycle : undefined,
@@ -163,16 +173,18 @@ const CoursesPage: React.FC = () => {
     setFormActive(course.isActive);
     setFormPaymentType(course.paymentType || 'recurring');
     setFormBillingCycle(course.billingCycle || 'monthly');
-    setFormDuration(course.durationMonths?.toString() || '');
+    setFormStartDate(course.startDate ? new Date(course.startDate) : undefined);
+    setFormEndDate(course.endDate ? new Date(course.endDate) : undefined);
     setEditDialogOpen(true);
   };
 
   const handleUpdateCourse = () => {
-    if (!selectedCourse || !formCode || !formName || !formFee) return;
+    if (!selectedCourse || !formCode || !formName || !formFee || !formStartDate || !formEndDate) return;
 
-    const durationMonths = formDuration ? parseInt(formDuration) : (
-      formPaymentType === 'recurring' ? BILLING_CYCLE_DURATIONS[formBillingCycle] : 1
-    );
+    const startDate = formStartDate;
+    const endDate = formEndDate;
+    const monthsDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
+    const durationMonths = Math.max(1, monthsDiff);
 
     updateCourse(selectedCourse.id, {
       code: formCode.toUpperCase(),
@@ -182,6 +194,8 @@ const CoursesPage: React.FC = () => {
       isActive: formActive,
       paymentType: formPaymentType,
       billingCycle: formPaymentType === 'recurring' ? formBillingCycle : undefined,
+      startDate: formStartDate.toISOString().split('T')[0],
+      endDate: formEndDate.toISOString().split('T')[0],
       durationMonths,
     });
 
@@ -342,23 +356,61 @@ const CoursesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Course Duration */}
-      <div className="space-y-2">
-        <Label htmlFor="duration">
-          Course Duration (months)
-          {formPaymentType === 'recurring' && formBillingCycle && (
-            <span className="text-muted-foreground ml-2">
-              (Default: {BILLING_CYCLE_DURATIONS[formBillingCycle]} months per cycle)
-            </span>
-          )}
-        </Label>
-        <Input 
-          id="duration" 
-          type="number" 
-          placeholder={formPaymentType === 'recurring' ? `${BILLING_CYCLE_DURATIONS[formBillingCycle]}` : '1'}
-          value={formDuration}
-          onChange={(e) => setFormDuration(e.target.value)}
-        />
+      {/* Start Date and End Date */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Start Date *</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !formStartDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {formStartDate ? format(formStartDate, "PPP") : "Pick start date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={formStartDate}
+                onSelect={setFormStartDate}
+                initialFocus
+                className="p-3 pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+        <div className="space-y-2">
+          <Label>End Date *</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !formEndDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {formEndDate ? format(formEndDate, "PPP") : "Pick end date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={formEndDate}
+                onSelect={setFormEndDate}
+                disabled={(date) => formStartDate ? date < formStartDate : false}
+                initialFocus
+                className="p-3 pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       <div className="flex items-center justify-between">
