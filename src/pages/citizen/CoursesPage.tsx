@@ -65,7 +65,7 @@ const CoursesPage: React.FC = () => {
   const [paymentResult, setPaymentResult] = useState<'success' | 'error' | null>(null);
 
   const activeEnrolments = enrolments.filter(e => e.isActive);
-  const pendingCharges = outstandingCharges.filter(c => c.status === 'unpaid' || c.status === 'pending');
+  const pendingCharges = outstandingCharges.filter(c => c.status === 'unpaid');
 
   const selectedTotal = selectedCharges.reduce((sum, id) => {
     const charge = pendingCharges.find(c => c.id === id);
