@@ -349,10 +349,7 @@ const AccountsPage: React.FC = () => {
                 return (
                   <TableRow key={account.id} className="group">
                     <TableCell>
-                      <div>
-                        <p className="font-medium">{holder.firstName} {holder.lastName}</p>
-                        <p className="text-sm text-muted-foreground">{holder.id}</p>
-                      </div>
+                      <p className="font-medium">{holder.firstName} {holder.lastName}</p>
                     </TableCell>
                     <TableCell className="font-mono text-sm">{account.id}</TableCell>
                     <TableCell>{holder.age}</TableCell>

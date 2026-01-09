@@ -1349,23 +1349,37 @@ const TopUpManagementPage: React.FC = () => {
               {/* Accounts List - For Batch Top-ups */}
               {selectedTransaction.accountCount && (
                 <div className="border-t pt-4">
-                  <p className="text-sm font-medium mb-2">Accounts to Receive ({selectedTransaction.accountCount})</p>
+                  <p className="text-sm font-medium mb-2">
+                    {selectedTransaction.status === 'pending' ? 'Accounts to Receive' : 'Accounts Received'} ({selectedTransaction.accountCount})
+                  </p>
                   <div className="border rounded-lg max-h-48 overflow-y-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead>Name</TableHead>
                           <TableHead>Account ID</TableHead>
-                          <TableHead className="text-right">Amount to Receive</TableHead>
+                          {selectedTransaction.status === 'completed' && (
+                            <TableHead>Transaction ID</TableHead>
+                          )}
+                          <TableHead className="text-right">
+                            {selectedTransaction.status === 'pending' ? 'Amount to Receive' : 'Amount Received'}
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {educationAccounts.slice(0, selectedTransaction.accountCount).map((account) => {
+                        {educationAccounts.slice(0, selectedTransaction.accountCount).map((account, index) => {
                           const holder = getAccountHolder(account.holderId);
+                          // Generate a mock transaction ID for completed batch top-ups
+                          const mockTxnId = selectedTransaction.status === 'completed' 
+                            ? `TXN${selectedTransaction.id.replace('BAT', '')}${String(index + 1).padStart(3, '0')}`
+                            : null;
                           return (
                             <TableRow key={account.id}>
                               <TableCell className="font-medium">{holder?.firstName} {holder?.lastName}</TableCell>
                               <TableCell className="font-mono text-sm">{account.id}</TableCell>
+                              {selectedTransaction.status === 'completed' && (
+                                <TableCell className="font-mono text-sm">{mockTxnId}</TableCell>
+                              )}
                               <TableCell className="text-right text-success">
                                 +{formatCurrency(selectedTransaction.totalAmount / selectedTransaction.accountCount)}
                               </TableCell>
