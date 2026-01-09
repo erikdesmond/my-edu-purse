@@ -785,7 +785,6 @@ const CoursesPage: React.FC = () => {
                         <Checkbox checked={isSelected} disabled={isEnrolled} />
                         <div>
                           <p className="font-medium">{holder.firstName} {holder.lastName}</p>
-                          <p className="text-sm text-muted-foreground">{holder.id}</p>
                         </div>
                       </div>
                       {isEnrolled && (

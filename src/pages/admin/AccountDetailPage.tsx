@@ -195,7 +195,7 @@ const AccountDetailPage: React.FC = () => {
               </div>
               <div>
                 <p className="font-medium">{holder.firstName} {holder.lastName}</p>
-                <p className="text-sm text-muted-foreground">ID: {holder.id}</p>
+                <p className="text-sm text-muted-foreground">Education Account: {account.id}</p>
               </div>
             </div>
 

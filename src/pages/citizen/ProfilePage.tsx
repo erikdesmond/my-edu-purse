@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   getAccountHolder,
+  getEducationAccountByHolder,
   formatDate,
   getSchoolingLabel
 } from '@/lib/data';
@@ -18,6 +19,7 @@ import { toast } from '@/hooks/use-toast';
 const ProfilePage: React.FC = () => {
   const { citizenUser } = useAuth();
   const holder = citizenUser ? getAccountHolder(citizenUser.id) : null;
+  const educationAccount = citizenUser ? getEducationAccountByHolder(citizenUser.id) : null;
   
   const [phone, setPhone] = useState(holder?.phone || '');
   const [email, setEmail] = useState(holder?.email || '');
@@ -64,7 +66,7 @@ const ProfilePage: React.FC = () => {
               <h2 className="text-xl font-bold text-foreground">
                 {holder.firstName} {holder.lastName}
               </h2>
-              <p className="text-muted-foreground">Account Holder ID: {holder.id}</p>
+              <p className="text-muted-foreground">Education Account: {educationAccount?.id || 'N/A'}</p>
               <p className="text-sm text-muted-foreground mt-1">
                 Member since {formatDate(holder.createdAt)}
               </p>
