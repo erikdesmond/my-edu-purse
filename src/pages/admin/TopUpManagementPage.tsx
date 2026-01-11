@@ -516,7 +516,7 @@ const TopUpManagementPage: React.FC = () => {
               <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 mb-4">
                 <Search className="h-7 w-7 text-primary" />
               </div>
-              <h3 className="text-lg font-semibold">Individual Top-up</h3>
+              <h3 className="text-lg font-semibold">Ad-hoc Top-up</h3>
               <p className="text-sm text-muted-foreground mt-1">
                 Top up one or more specific accounts
               </p>
@@ -726,18 +726,19 @@ const TopUpManagementPage: React.FC = () => {
             )}
           </div>
 
-          <Tabs defaultValue="individual" className="space-y-4">
+          <Tabs defaultValue="adhoc" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="individual">Individual Top-ups</TabsTrigger>
+              <TabsTrigger value="adhoc">Ad-hoc Top-ups</TabsTrigger>
               <TabsTrigger value="batch">Batch Top-ups</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="individual">
+            <TabsContent value="adhoc">
               {(() => {
-                const allIndividual = getFilteredTransactions('individual');
+                const allIndividual = getFilteredTransactions('individual').sort((a, b) => 
+                  new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                );
                 const totalPages = Math.ceil(allIndividual.length / individualPageSize);
                 const paginatedData = allIndividual.slice((individualPage - 1) * individualPageSize, individualPage * individualPageSize);
-                
                 return (
                   <>
                     <Table>
@@ -894,11 +895,11 @@ const TopUpManagementPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Individual Top-up Dialog */}
+      {/* Ad-hoc Top-up Dialog */}
       <Dialog open={individualDialogOpen} onOpenChange={setIndividualDialogOpen}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Individual Top-up</DialogTitle>
+            <DialogTitle>Ad-hoc Top-up</DialogTitle>
             <DialogDescription>
               Select one or more accounts to top up
             </DialogDescription>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, Eye, MoreHorizontal } from 'lucide-react';
+import { Search, Plus, Eye, MoreHorizontal, CheckCircle, XCircle } from 'lucide-react';
 import { AdminLayout } from '@/components/layouts/AdminLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -46,6 +46,7 @@ import {
   getAccountHolder,
   addAccountHolder,
   addEducationAccount,
+  updateEducationAccount,
   addAuditLog,
 } from '@/lib/dataStore';
 import {
@@ -76,7 +77,18 @@ const AccountsPage: React.FC = () => {
   const [schoolingStatus, setSchoolingStatus] = useState<SchoolingStatus>('in_school');
   const [initialBalance, setInitialBalance] = useState('');
 
-  const filteredAccounts = educationAccounts.filter(account => {
+  // Helper function to mask NRIC (show only last 4 characters)
+  const maskNric = (nric: string) => {
+    if (!nric || nric.length < 4) return 'N/A';
+    return '****' + nric.slice(-4);
+  };
+
+  // Sort accounts by newest first (by openedAt date)
+  const sortedAccounts = [...educationAccounts].sort((a, b) => 
+    new Date(b.openedAt).getTime() - new Date(a.openedAt).getTime()
+  );
+
+  const filteredAccounts = sortedAccounts.filter(account => {
     const holder = getAccountHolder(account.holderId);
     if (!holder) return false;
 
@@ -91,6 +103,49 @@ const AccountsPage: React.FC = () => {
 
     return matchesSearch && matchesStatus && matchesSchooling;
   });
+
+  const handleSuspendAccount = (accountId: string) => {
+    updateEducationAccount(accountId, { 
+      status: 'suspended',
+      suspendedAt: new Date().toISOString().split('T')[0]
+    });
+    addAuditLog({
+      id: `AUD${String(Date.now()).slice(-6)}`,
+      action: 'Account Suspended',
+      entityType: 'EducationAccount',
+      entityId: accountId,
+      userId: 'USR001',
+      userName: 'Admin User',
+      details: `Account ${accountId} has been suspended`,
+      createdAt: new Date().toISOString(),
+    });
+    toast({
+      title: "Account Suspended",
+      description: `Account ${accountId} has been suspended.`,
+      variant: "destructive"
+    });
+  };
+
+  const handleReactivateAccount = (accountId: string) => {
+    updateEducationAccount(accountId, { 
+      status: 'active',
+      suspendedAt: null
+    });
+    addAuditLog({
+      id: `AUD${String(Date.now()).slice(-6)}`,
+      action: 'Account Reactivated',
+      entityType: 'EducationAccount',
+      entityId: accountId,
+      userId: 'USR001',
+      userName: 'Admin User',
+      details: `Account ${accountId} has been reactivated`,
+      createdAt: new Date().toISOString(),
+    });
+    toast({
+      title: "Account Reactivated",
+      description: `Account ${accountId} has been reactivated.`,
+    });
+  };
 
   const resetForm = () => {
     setFirstName('');
@@ -128,6 +183,7 @@ const AccountsPage: React.FC = () => {
       id: holderId,
       firstName,
       lastName,
+      nric: '', // Will be added later with proper NRIC input
       email,
       phone: phone || '',
       dateOfBirth,
@@ -148,6 +204,7 @@ const AccountsPage: React.FC = () => {
       balance,
       status: 'active' as AccountStatus,
       openedAt: new Date().toISOString().split('T')[0],
+      suspendedAt: null,
       closedAt: null,
       lastTopUpDate: balance > 0 ? new Date().toISOString().split('T')[0] : null,
     };
@@ -333,11 +390,14 @@ const AccountsPage: React.FC = () => {
               <TableRow>
                 <TableHead>Account Holder</TableHead>
                 <TableHead>Account ID</TableHead>
+                <TableHead>NRIC</TableHead>
                 <TableHead>Age</TableHead>
                 <TableHead>Schooling Status</TableHead>
                 <TableHead className="text-right">Balance</TableHead>
                 <TableHead>Account Status</TableHead>
                 <TableHead>Opened</TableHead>
+                <TableHead>Suspended</TableHead>
+                <TableHead>Closed</TableHead>
                 <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -352,6 +412,7 @@ const AccountsPage: React.FC = () => {
                       <p className="font-medium">{holder.firstName} {holder.lastName}</p>
                     </TableCell>
                     <TableCell className="font-mono text-sm">{account.id}</TableCell>
+                    <TableCell className="font-mono text-sm">{maskNric(holder.nric)}</TableCell>
                     <TableCell>{holder.age}</TableCell>
                     <TableCell>
                       <span className="text-sm">{getSchoolingLabel(holder.schoolingStatus)}</span>
@@ -367,6 +428,12 @@ const AccountsPage: React.FC = () => {
                     <TableCell className="text-sm text-muted-foreground">
                       {formatDate(account.openedAt)}
                     </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {account.suspendedAt ? formatDate(account.suspendedAt) : '-'}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {account.closedAt ? formatDate(account.closedAt) : '-'}
+                    </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -381,9 +448,17 @@ const AccountsPage: React.FC = () => {
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link to="/admin/topups/single">Top-up Account</Link>
+                            <Link to="/admin/topup-management">Top-up Account</Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">Suspend Account</DropdownMenuItem>
+                          {account.status === 'suspended' ? (
+                            <DropdownMenuItem onClick={() => handleReactivateAccount(account.id)}>
+                              <CheckCircle className="h-4 w-4 mr-2" /> Re-activate Account
+                            </DropdownMenuItem>
+                          ) : account.status === 'active' ? (
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleSuspendAccount(account.id)}>
+                              <XCircle className="h-4 w-4 mr-2" /> Suspend Account
+                            </DropdownMenuItem>
+                          ) : null}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
