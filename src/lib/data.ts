@@ -11,6 +11,7 @@ export interface AccountHolder {
   id: string;
   firstName: string;
   lastName: string;
+  nric: string; // Full NRIC stored securely
   email: string;
   phone: string;
   dateOfBirth: string;
@@ -26,6 +27,7 @@ export interface EducationAccount {
   balance: number;
   status: AccountStatus;
   openedAt: string;
+  suspendedAt: string | null;
   closedAt: string | null;
   lastTopUpDate: string | null;
 }
@@ -62,7 +64,8 @@ export interface Transaction {
   type: TransactionType;
   amount: number;
   balanceAfter: number;
-  description: string;
+  description: string; // Internal description (admin only)
+  externalDescription?: string; // External description (visible to students)
   reference: string;
   status: TransactionStatus;
   createdAt: string;
@@ -84,7 +87,8 @@ export interface OutstandingCharge {
 export interface Batch {
   id: string;
   type: 'top_up' | 'fee_run';
-  description: string;
+  description: string; // Internal description (admin only)
+  externalDescription?: string; // External description (visible to students)
   totalAmount: number;
   accountCount: number;
   status: 'completed' | 'pending' | 'failed';
@@ -113,34 +117,34 @@ export interface AdminUser {
 
 // Demo Account Holders
 export const accountHolders: AccountHolder[] = [
-  { id: 'AH001', firstName: 'Wei Ming', lastName: 'Tan', email: 'weiming.tan@email.com', phone: '+65 9123 4567', dateOfBirth: '2000-03-15', age: 24, address: '123 Orchard Road, Singapore 238888', schoolingStatus: 'in_school', createdAt: '2023-01-15' },
-  { id: 'AH002', firstName: 'Priya', lastName: 'Kumar', email: 'priya.kumar@email.com', phone: '+65 9234 5678', dateOfBirth: '1998-07-22', age: 26, address: '45 Tampines Ave 3, Singapore 529001', schoolingStatus: 'graduated', createdAt: '2022-08-20' },
-  { id: 'AH003', firstName: 'Muhammad', lastName: 'Ali', email: 'muhammad.ali@email.com', phone: '+65 9345 6789', dateOfBirth: '2005-11-08', age: 19, address: '78 Jurong West St 41, Singapore 649410', schoolingStatus: 'in_school', createdAt: '2024-01-10' },
-  { id: 'AH004', firstName: 'Mei Ling', lastName: 'Lim', email: 'meiling.lim@email.com', phone: '+65 9456 7890', dateOfBirth: '2002-05-30', age: 22, address: '12 Marine Parade, Singapore 449269', schoolingStatus: 'in_school', createdAt: '2023-06-05' },
-  { id: 'AH005', firstName: 'Raj', lastName: 'Sharma', email: 'raj.sharma@email.com', phone: '+65 9567 8901', dateOfBirth: '1996-09-12', age: 28, address: '56 Bukit Timah Rd, Singapore 229839', schoolingStatus: 'graduated', createdAt: '2021-03-25' },
-  { id: 'AH006', firstName: 'Sarah', lastName: 'Chen', email: 'sarah.chen@email.com', phone: '+65 9678 9012', dateOfBirth: '2007-02-18', age: 17, address: '34 Bedok North Ave 1, Singapore 469646', schoolingStatus: 'in_school', createdAt: '2024-06-01' },
-  { id: 'AH007', firstName: 'Ahmad', lastName: 'Ibrahim', email: 'ahmad.ibrahim@email.com', phone: '+65 9789 0123', dateOfBirth: '2001-12-25', age: 23, address: '89 Woodlands Ave 5, Singapore 738985', schoolingStatus: 'deferred', createdAt: '2023-09-15' },
-  { id: 'AH008', firstName: 'Yan Ting', lastName: 'Wong', email: 'yanting.wong@email.com', phone: '+65 9890 1234', dateOfBirth: '2004-08-10', age: 20, address: '23 Serangoon Garden Way, Singapore 555948', schoolingStatus: 'in_school', createdAt: '2024-02-20' },
-  { id: 'AH009', firstName: 'Kavitha', lastName: 'Nair', email: 'kavitha.nair@email.com', phone: '+65 9901 2345', dateOfBirth: '1999-04-05', age: 25, address: '67 Clementi Ave 2, Singapore 129803', schoolingStatus: 'graduated', createdAt: '2022-11-10' },
-  { id: 'AH010', firstName: 'Jun Wei', lastName: 'Ong', email: 'junwei.ong@email.com', phone: '+65 9012 3456', dateOfBirth: '2006-01-20', age: 18, address: '41 Pasir Ris Dr 6, Singapore 519422', schoolingStatus: 'in_school', createdAt: '2024-08-15' },
-  { id: 'AH011', firstName: 'Aisha', lastName: 'Hassan', email: 'aisha.hassan@email.com', phone: '+65 9111 2222', dateOfBirth: '2003-06-14', age: 21, address: '15 Yishun Ave 11, Singapore 768853', schoolingStatus: 'in_school', createdAt: '2023-04-22' },
-  { id: 'AH012', firstName: 'Kevin', lastName: 'Lee', email: 'kevin.lee@email.com', phone: '+65 9222 3333', dateOfBirth: '1997-10-30', age: 27, address: '88 Toa Payoh Lorong 4, Singapore 310088', schoolingStatus: 'dropped_out', createdAt: '2021-07-18' },
+  { id: 'AH001', firstName: 'Wei Ming', lastName: 'Tan', nric: 'S9012345A', email: 'weiming.tan@email.com', phone: '+65 9123 4567', dateOfBirth: '2000-03-15', age: 24, address: '123 Orchard Road, Singapore 238888', schoolingStatus: 'in_school', createdAt: '2023-01-15' },
+  { id: 'AH002', firstName: 'Priya', lastName: 'Kumar', nric: 'S9823456B', email: 'priya.kumar@email.com', phone: '+65 9234 5678', dateOfBirth: '1998-07-22', age: 26, address: '45 Tampines Ave 3, Singapore 529001', schoolingStatus: 'graduated', createdAt: '2022-08-20' },
+  { id: 'AH003', firstName: 'Muhammad', lastName: 'Ali', nric: 'S0534567C', email: 'muhammad.ali@email.com', phone: '+65 9345 6789', dateOfBirth: '2005-11-08', age: 19, address: '78 Jurong West St 41, Singapore 649410', schoolingStatus: 'in_school', createdAt: '2024-01-10' },
+  { id: 'AH004', firstName: 'Mei Ling', lastName: 'Lim', nric: 'S0245678D', email: 'meiling.lim@email.com', phone: '+65 9456 7890', dateOfBirth: '2002-05-30', age: 22, address: '12 Marine Parade, Singapore 449269', schoolingStatus: 'in_school', createdAt: '2023-06-05' },
+  { id: 'AH005', firstName: 'Raj', lastName: 'Sharma', nric: 'S9656789E', email: 'raj.sharma@email.com', phone: '+65 9567 8901', dateOfBirth: '1996-09-12', age: 28, address: '56 Bukit Timah Rd, Singapore 229839', schoolingStatus: 'graduated', createdAt: '2021-03-25' },
+  { id: 'AH006', firstName: 'Sarah', lastName: 'Chen', nric: 'T0767890F', email: 'sarah.chen@email.com', phone: '+65 9678 9012', dateOfBirth: '2007-02-18', age: 17, address: '34 Bedok North Ave 1, Singapore 469646', schoolingStatus: 'in_school', createdAt: '2024-06-01' },
+  { id: 'AH007', firstName: 'Ahmad', lastName: 'Ibrahim', nric: 'S0178901G', email: 'ahmad.ibrahim@email.com', phone: '+65 9789 0123', dateOfBirth: '2001-12-25', age: 23, address: '89 Woodlands Ave 5, Singapore 738985', schoolingStatus: 'deferred', createdAt: '2023-09-15' },
+  { id: 'AH008', firstName: 'Yan Ting', lastName: 'Wong', nric: 'S0489012H', email: 'yanting.wong@email.com', phone: '+65 9890 1234', dateOfBirth: '2004-08-10', age: 20, address: '23 Serangoon Garden Way, Singapore 555948', schoolingStatus: 'in_school', createdAt: '2024-02-20' },
+  { id: 'AH009', firstName: 'Kavitha', lastName: 'Nair', nric: 'S9990123J', email: 'kavitha.nair@email.com', phone: '+65 9901 2345', dateOfBirth: '1999-04-05', age: 25, address: '67 Clementi Ave 2, Singapore 129803', schoolingStatus: 'graduated', createdAt: '2022-11-10' },
+  { id: 'AH010', firstName: 'Jun Wei', lastName: 'Ong', nric: 'T0601234K', email: 'junwei.ong@email.com', phone: '+65 9012 3456', dateOfBirth: '2006-01-20', age: 18, address: '41 Pasir Ris Dr 6, Singapore 519422', schoolingStatus: 'in_school', createdAt: '2024-08-15' },
+  { id: 'AH011', firstName: 'Aisha', lastName: 'Hassan', nric: 'S0312345L', email: 'aisha.hassan@email.com', phone: '+65 9111 2222', dateOfBirth: '2003-06-14', age: 21, address: '15 Yishun Ave 11, Singapore 768853', schoolingStatus: 'in_school', createdAt: '2023-04-22' },
+  { id: 'AH012', firstName: 'Kevin', lastName: 'Lee', nric: 'S9723456M', email: 'kevin.lee@email.com', phone: '+65 9222 3333', dateOfBirth: '1997-10-30', age: 27, address: '88 Toa Payoh Lorong 4, Singapore 310088', schoolingStatus: 'dropped_out', createdAt: '2021-07-18' },
 ];
 
 // Demo Education Accounts - AH001 (Wei Ming) has $100 balance to demonstrate combined payment
 export const educationAccounts: EducationAccount[] = [
-  { id: 'EA001', holderId: 'AH001', balance: 100.00, status: 'active', openedAt: '2023-01-15', closedAt: null, lastTopUpDate: '2024-12-01' },
-  { id: 'EA002', holderId: 'AH002', balance: 450.50, status: 'active', openedAt: '2022-08-20', closedAt: null, lastTopUpDate: '2024-11-15' },
-  { id: 'EA003', holderId: 'AH003', balance: 2000.00, status: 'active', openedAt: '2024-01-10', closedAt: null, lastTopUpDate: '2024-12-20' },
-  { id: 'EA004', holderId: 'AH004', balance: 875.25, status: 'active', openedAt: '2023-06-05', closedAt: null, lastTopUpDate: '2024-10-01' },
-  { id: 'EA005', holderId: 'AH005', balance: 0.00, status: 'closed', openedAt: '2021-03-25', closedAt: '2024-03-25', lastTopUpDate: '2023-12-01' },
-  { id: 'EA006', holderId: 'AH006', balance: 1500.00, status: 'active', openedAt: '2024-06-01', closedAt: null, lastTopUpDate: '2024-12-15' },
-  { id: 'EA007', holderId: 'AH007', balance: 320.00, status: 'suspended', openedAt: '2023-09-15', closedAt: null, lastTopUpDate: '2024-08-01' },
-  { id: 'EA008', holderId: 'AH008', balance: 1100.00, status: 'active', openedAt: '2024-02-20', closedAt: null, lastTopUpDate: '2024-11-30' },
-  { id: 'EA009', holderId: 'AH009', balance: 200.00, status: 'active', openedAt: '2022-11-10', closedAt: null, lastTopUpDate: '2024-09-15' },
-  { id: 'EA010', holderId: 'AH010', balance: 1800.00, status: 'pending', openedAt: '2024-08-15', closedAt: null, lastTopUpDate: '2024-12-01' },
-  { id: 'EA011', holderId: 'AH011', balance: 650.00, status: 'active', openedAt: '2023-04-22', closedAt: null, lastTopUpDate: '2024-11-01' },
-  { id: 'EA012', holderId: 'AH012', balance: 50.00, status: 'suspended', openedAt: '2021-07-18', closedAt: null, lastTopUpDate: '2023-06-01' },
+  { id: 'EA001', holderId: 'AH001', balance: 100.00, status: 'active', openedAt: '2023-01-15', suspendedAt: null, closedAt: null, lastTopUpDate: '2024-12-01' },
+  { id: 'EA002', holderId: 'AH002', balance: 450.50, status: 'active', openedAt: '2022-08-20', suspendedAt: null, closedAt: null, lastTopUpDate: '2024-11-15' },
+  { id: 'EA003', holderId: 'AH003', balance: 2000.00, status: 'active', openedAt: '2024-01-10', suspendedAt: null, closedAt: null, lastTopUpDate: '2024-12-20' },
+  { id: 'EA004', holderId: 'AH004', balance: 875.25, status: 'active', openedAt: '2023-06-05', suspendedAt: null, closedAt: null, lastTopUpDate: '2024-10-01' },
+  { id: 'EA005', holderId: 'AH005', balance: 0.00, status: 'closed', openedAt: '2021-03-25', suspendedAt: null, closedAt: '2024-03-25', lastTopUpDate: '2023-12-01' },
+  { id: 'EA006', holderId: 'AH006', balance: 1500.00, status: 'active', openedAt: '2024-06-01', suspendedAt: null, closedAt: null, lastTopUpDate: '2024-12-15' },
+  { id: 'EA007', holderId: 'AH007', balance: 320.00, status: 'suspended', openedAt: '2023-09-15', suspendedAt: '2024-09-20', closedAt: null, lastTopUpDate: '2024-08-01' },
+  { id: 'EA008', holderId: 'AH008', balance: 1100.00, status: 'active', openedAt: '2024-02-20', suspendedAt: null, closedAt: null, lastTopUpDate: '2024-11-30' },
+  { id: 'EA009', holderId: 'AH009', balance: 200.00, status: 'active', openedAt: '2022-11-10', suspendedAt: null, closedAt: null, lastTopUpDate: '2024-09-15' },
+  { id: 'EA010', holderId: 'AH010', balance: 1800.00, status: 'pending', openedAt: '2024-08-15', suspendedAt: null, closedAt: null, lastTopUpDate: '2024-12-01' },
+  { id: 'EA011', holderId: 'AH011', balance: 650.00, status: 'active', openedAt: '2023-04-22', suspendedAt: null, closedAt: null, lastTopUpDate: '2024-11-01' },
+  { id: 'EA012', holderId: 'AH012', balance: 50.00, status: 'suspended', openedAt: '2021-07-18', suspendedAt: '2023-08-15', closedAt: null, lastTopUpDate: '2023-06-01' },
 ];
 
 // Demo Courses with payment types

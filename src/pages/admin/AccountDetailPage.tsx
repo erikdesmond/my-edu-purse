@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, User, Wallet, Calendar, Phone, Mail, MapPin, CreditCard, XCircle, Clock, TrendingUp, TrendingDown, Filter, BookOpen, DollarSign, CheckCircle } from 'lucide-react';
+import { ArrowLeft, User, Wallet, Calendar, Phone, Mail, MapPin, CreditCard, XCircle, Clock, TrendingUp, TrendingDown, Filter, BookOpen, DollarSign, CheckCircle, Eye, EyeOff, IdCard } from 'lucide-react';
 import { updateEducationAccount } from '@/lib/dataStore';
 import { AdminLayout } from '@/components/layouts/AdminLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -47,6 +47,7 @@ const AccountDetailPage: React.FC = () => {
   const outstandingCharges = account ? getOutstandingChargesByAccount(account.id) : [];
   
   const [transactionFilter, setTransactionFilter] = useState<'all' | 'in' | 'out'>('all');
+  const [showFullNric, setShowFullNric] = useState(false);
 
   if (!account || !holder) {
     return (
@@ -62,7 +63,10 @@ const AccountDetailPage: React.FC = () => {
   }
 
   const handleSuspend = () => {
-    updateEducationAccount(account.id, { status: 'suspended' });
+    updateEducationAccount(account.id, { 
+      status: 'suspended',
+      suspendedAt: new Date().toISOString().split('T')[0]
+    });
     toast({
       title: "Account Suspended",
       description: `Account ${account.id} has been suspended.`,
@@ -71,11 +75,21 @@ const AccountDetailPage: React.FC = () => {
   };
 
   const handleReactivate = () => {
-    updateEducationAccount(account.id, { status: 'active' });
+    updateEducationAccount(account.id, { 
+      status: 'active',
+      suspendedAt: null
+    });
     toast({
       title: "Account Reactivated",
       description: `Account ${account.id} has been reactivated.`,
     });
+  };
+
+  // Helper function to mask/display NRIC
+  const displayNric = () => {
+    if (!holder.nric || holder.nric.length < 4) return 'N/A';
+    if (showFullNric) return holder.nric;
+    return '****' + holder.nric.slice(-4);
   };
 
   // Calculate financial statistics
@@ -94,8 +108,12 @@ const AccountDetailPage: React.FC = () => {
   const overallMoneyIn = totalTopUps + totalPayments;
   const overallMoneyOut = totalCharges;
   
-  // Filter transactions based on selection
-  const filteredTransactions = transactions.filter(t => {
+  // Filter and sort transactions (newest first)
+  const sortedTransactions = [...transactions].sort((a, b) => 
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
+  const filteredTransactions = sortedTransactions.filter(t => {
     if (transactionFilter === 'all') return true;
     if (transactionFilter === 'in') return t.amount > 0;
     if (transactionFilter === 'out') return t.amount < 0;
@@ -201,6 +219,27 @@ const AccountDetailPage: React.FC = () => {
 
             <div className="space-y-3 pt-2">
               <div className="flex items-start gap-3">
+                <IdCard className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">NRIC</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-muted-foreground font-mono">{displayNric()}</p>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => setShowFullNric(!showFullNric)}
+                    >
+                      {showFullNric ? (
+                        <EyeOff className="h-3 w-3" />
+                      ) : (
+                        <Eye className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
                 <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="text-sm font-medium">Date of Birth</p>
@@ -243,6 +282,18 @@ const AccountDetailPage: React.FC = () => {
                 <span className="text-sm text-muted-foreground">Account Opened</span>
                 <span className="text-sm font-medium">{formatDate(account.openedAt)}</span>
               </div>
+              {account.suspendedAt && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Account Suspended</span>
+                  <span className="text-sm font-medium text-warning">{formatDate(account.suspendedAt)}</span>
+                </div>
+              )}
+              {account.closedAt && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Account Closed</span>
+                  <span className="text-sm font-medium text-destructive">{formatDate(account.closedAt)}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Last Top-up</span>
                 <span className="text-sm font-medium">{account.lastTopUpDate ? formatDate(account.lastTopUpDate) : 'Never'}</span>

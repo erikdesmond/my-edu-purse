@@ -26,7 +26,12 @@ const TransactionsPage: React.FC = () => {
   const account = citizenUser ? getEducationAccount(citizenUser.accountId) : null;
   const allTransactions = account ? getTransactionsByAccount(account.id) : [];
   
-  const filteredTransactions = allTransactions.filter(txn => 
+  // Sort transactions by newest first
+  const sortedTransactions = [...allTransactions].sort((a, b) => 
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+  
+  const filteredTransactions = sortedTransactions.filter(txn => 
     typeFilter === 'all' || txn.type === typeFilter
   );
 
