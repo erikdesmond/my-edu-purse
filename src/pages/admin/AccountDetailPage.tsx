@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, User, Wallet, Calendar, Phone, Mail, MapPin, CreditCard, XCircle, Clock, TrendingUp, TrendingDown, Filter, BookOpen, DollarSign, CheckCircle, Eye, EyeOff, IdCard, Activity, UserCog, Building } from 'lucide-react';
-import { updateEducationAccount, getAuditLogs } from '@/lib/dataStore';
+import { updateEducationAccount, getAuditLogs, getEducationAccounts } from '@/lib/dataStore';
 import { AdminLayout } from '@/components/layouts/AdminLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/shared/StatCard';
@@ -24,7 +24,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  getEducationAccount,
   getAccountHolder,
   getTransactionsByAccount,
   getOutstandingChargesByAccount,
@@ -57,8 +56,8 @@ const AccountDetailPage: React.FC = () => {
   const { accountId } = useParams<{ accountId: string }>();
   
   // Use dataStore with useDataStore to get reactive data for newly created accounts
-  const allAccounts = useDataStore(() => [getEducationAccount(accountId || '')].filter(Boolean));
-  const account = allAccounts[0] || getEducationAccount(accountId || '');
+  const educationAccounts = useDataStore(getEducationAccounts);
+  const account = educationAccounts.find(ea => ea.id === accountId) || null;
   const holder = account ? getAccountHolder(account.holderId) : null;
   const transactions = account ? getTransactionsByAccount(account.id) : [];
   const allEnrolments = useDataStore(getEnrolments);
