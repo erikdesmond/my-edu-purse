@@ -84,6 +84,7 @@ const CoursesPage: React.FC = () => {
   // Form states
   const [formCode, setFormCode] = useState('');
   const [formName, setFormName] = useState('');
+  const [formProvider, setFormProvider] = useState('');
   const [formFee, setFormFee] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formActive, setFormActive] = useState(true);
@@ -114,6 +115,7 @@ const CoursesPage: React.FC = () => {
   const resetForm = () => {
     setFormCode('');
     setFormName('');
+    setFormProvider('');
     setFormFee('');
     setFormDescription('');
     setFormActive(true);
@@ -124,10 +126,10 @@ const CoursesPage: React.FC = () => {
   };
 
   const handleCreateCourse = () => {
-    if (!formCode || !formName || !formFee || !formDescription) {
+    if (!formCode || !formName || !formProvider || !formFee || !formDescription) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields (Code, Name, Fee, Description).",
+        description: "Please fill in all required fields (Code, Name, Provider, Fee, Description).",
         variant: "destructive",
       });
       return;
@@ -144,6 +146,7 @@ const CoursesPage: React.FC = () => {
       id: `CRS${String(Date.now()).slice(-6)}`,
       code: formCode.toUpperCase(),
       name: formName,
+      provider: formProvider,
       monthlyFee: parseFloat(formFee),
       description: formDescription,
       startDate: formStartDate ? formStartDate.toISOString().split('T')[0] : undefined,
@@ -169,6 +172,7 @@ const CoursesPage: React.FC = () => {
     setSelectedCourse(course);
     setFormCode(course.code);
     setFormName(course.name);
+    setFormProvider(course.provider || '');
     setFormFee(course.monthlyFee.toString());
     setFormDescription(course.description);
     setFormActive(course.isActive);
@@ -180,7 +184,7 @@ const CoursesPage: React.FC = () => {
   };
 
   const handleUpdateCourse = () => {
-    if (!selectedCourse || !formCode || !formName || !formFee || !formDescription) return;
+    if (!selectedCourse || !formCode || !formName || !formProvider || !formFee || !formDescription) return;
 
     let durationMonths = selectedCourse.durationMonths || 12;
     if (formStartDate && formEndDate) {
@@ -191,6 +195,7 @@ const CoursesPage: React.FC = () => {
     updateCourse(selectedCourse.id, {
       code: formCode.toUpperCase(),
       name: formName,
+      provider: formProvider,
       monthlyFee: parseFloat(formFee),
       description: formDescription,
       isActive: formActive,
@@ -315,6 +320,15 @@ const CoursesPage: React.FC = () => {
           placeholder="e.g., Introduction to Programming"
           value={formName}
           onChange={(e) => setFormName(e.target.value)}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="provider">Provider (School/Institution) *</Label>
+        <Input 
+          id="provider" 
+          placeholder="e.g., Singapore Polytechnic"
+          value={formProvider}
+          onChange={(e) => setFormProvider(e.target.value)}
         />
       </div>
       <div className="space-y-2">

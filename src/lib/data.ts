@@ -7,6 +7,8 @@ export type TransactionStatus = 'completed' | 'pending' | 'failed';
 export type PaymentStatus = 'paid' | 'unpaid' | 'overdue' | 'partial';
 export type SchoolingStatus = 'in_school' | 'graduated' | 'dropped_out' | 'deferred';
 
+export type AccountActivationStatus = 'non_active' | 'active_immediately' | 'scheduled';
+
 export interface AccountHolder {
   id: string;
   firstName: string;
@@ -17,6 +19,7 @@ export interface AccountHolder {
   dateOfBirth: string;
   age: number;
   address: string;
+  educationProvider?: string; // School/institution of the account holder
   schoolingStatus: SchoolingStatus;
   createdAt: string;
 }
@@ -26,6 +29,8 @@ export interface EducationAccount {
   holderId: string;
   balance: number;
   status: AccountStatus;
+  activationStatus?: AccountActivationStatus;
+  scheduledActivationDate?: string | null;
   openedAt: string;
   suspendedAt: string | null;
   closedAt: string | null;
@@ -39,6 +44,7 @@ export interface Course {
   id: string;
   code: string;
   name: string;
+  provider: string; // School/institution the course belongs to
   monthlyFee: number;
   description: string;
   isActive: boolean;
@@ -117,18 +123,18 @@ export interface AdminUser {
 
 // Demo Account Holders
 export const accountHolders: AccountHolder[] = [
-  { id: 'AH001', firstName: 'Wei Ming', lastName: 'Tan', nric: 'S9012345A', email: 'weiming.tan@email.com', phone: '+65 9123 4567', dateOfBirth: '2000-03-15', age: 24, address: '123 Orchard Road, Singapore 238888', schoolingStatus: 'in_school', createdAt: '2023-01-15' },
-  { id: 'AH002', firstName: 'Priya', lastName: 'Kumar', nric: 'S9823456B', email: 'priya.kumar@email.com', phone: '+65 9234 5678', dateOfBirth: '1998-07-22', age: 26, address: '45 Tampines Ave 3, Singapore 529001', schoolingStatus: 'graduated', createdAt: '2022-08-20' },
-  { id: 'AH003', firstName: 'Muhammad', lastName: 'Ali', nric: 'S0534567C', email: 'muhammad.ali@email.com', phone: '+65 9345 6789', dateOfBirth: '2005-11-08', age: 19, address: '78 Jurong West St 41, Singapore 649410', schoolingStatus: 'in_school', createdAt: '2024-01-10' },
-  { id: 'AH004', firstName: 'Mei Ling', lastName: 'Lim', nric: 'S0245678D', email: 'meiling.lim@email.com', phone: '+65 9456 7890', dateOfBirth: '2002-05-30', age: 22, address: '12 Marine Parade, Singapore 449269', schoolingStatus: 'in_school', createdAt: '2023-06-05' },
-  { id: 'AH005', firstName: 'Raj', lastName: 'Sharma', nric: 'S9656789E', email: 'raj.sharma@email.com', phone: '+65 9567 8901', dateOfBirth: '1996-09-12', age: 28, address: '56 Bukit Timah Rd, Singapore 229839', schoolingStatus: 'graduated', createdAt: '2021-03-25' },
-  { id: 'AH006', firstName: 'Sarah', lastName: 'Chen', nric: 'T0767890F', email: 'sarah.chen@email.com', phone: '+65 9678 9012', dateOfBirth: '2007-02-18', age: 17, address: '34 Bedok North Ave 1, Singapore 469646', schoolingStatus: 'in_school', createdAt: '2024-06-01' },
-  { id: 'AH007', firstName: 'Ahmad', lastName: 'Ibrahim', nric: 'S0178901G', email: 'ahmad.ibrahim@email.com', phone: '+65 9789 0123', dateOfBirth: '2001-12-25', age: 23, address: '89 Woodlands Ave 5, Singapore 738985', schoolingStatus: 'deferred', createdAt: '2023-09-15' },
-  { id: 'AH008', firstName: 'Yan Ting', lastName: 'Wong', nric: 'S0489012H', email: 'yanting.wong@email.com', phone: '+65 9890 1234', dateOfBirth: '2004-08-10', age: 20, address: '23 Serangoon Garden Way, Singapore 555948', schoolingStatus: 'in_school', createdAt: '2024-02-20' },
-  { id: 'AH009', firstName: 'Kavitha', lastName: 'Nair', nric: 'S9990123J', email: 'kavitha.nair@email.com', phone: '+65 9901 2345', dateOfBirth: '1999-04-05', age: 25, address: '67 Clementi Ave 2, Singapore 129803', schoolingStatus: 'graduated', createdAt: '2022-11-10' },
-  { id: 'AH010', firstName: 'Jun Wei', lastName: 'Ong', nric: 'T0601234K', email: 'junwei.ong@email.com', phone: '+65 9012 3456', dateOfBirth: '2006-01-20', age: 18, address: '41 Pasir Ris Dr 6, Singapore 519422', schoolingStatus: 'in_school', createdAt: '2024-08-15' },
-  { id: 'AH011', firstName: 'Aisha', lastName: 'Hassan', nric: 'S0312345L', email: 'aisha.hassan@email.com', phone: '+65 9111 2222', dateOfBirth: '2003-06-14', age: 21, address: '15 Yishun Ave 11, Singapore 768853', schoolingStatus: 'in_school', createdAt: '2023-04-22' },
-  { id: 'AH012', firstName: 'Kevin', lastName: 'Lee', nric: 'S9723456M', email: 'kevin.lee@email.com', phone: '+65 9222 3333', dateOfBirth: '1997-10-30', age: 27, address: '88 Toa Payoh Lorong 4, Singapore 310088', schoolingStatus: 'dropped_out', createdAt: '2021-07-18' },
+  { id: 'AH001', firstName: 'Wei Ming', lastName: 'Tan', nric: 'S9012345A', email: 'weiming.tan@email.com', phone: '+65 9123 4567', dateOfBirth: '2000-03-15', age: 24, address: '123 Orchard Road, Singapore 238888', educationProvider: 'Singapore Polytechnic', schoolingStatus: 'in_school', createdAt: '2023-01-15' },
+  { id: 'AH002', firstName: 'Priya', lastName: 'Kumar', nric: 'S9823456B', email: 'priya.kumar@email.com', phone: '+65 9234 5678', dateOfBirth: '1998-07-22', age: 26, address: '45 Tampines Ave 3, Singapore 529001', educationProvider: 'Ngee Ann Polytechnic', schoolingStatus: 'graduated', createdAt: '2022-08-20' },
+  { id: 'AH003', firstName: 'Muhammad', lastName: 'Ali', nric: 'S0534567C', email: 'muhammad.ali@email.com', phone: '+65 9345 6789', dateOfBirth: '2005-11-08', age: 19, address: '78 Jurong West St 41, Singapore 649410', educationProvider: 'Republic Polytechnic', schoolingStatus: 'in_school', createdAt: '2024-01-10' },
+  { id: 'AH004', firstName: 'Mei Ling', lastName: 'Lim', nric: 'S0245678D', email: 'meiling.lim@email.com', phone: '+65 9456 7890', dateOfBirth: '2002-05-30', age: 22, address: '12 Marine Parade, Singapore 449269', educationProvider: 'Temasek Polytechnic', schoolingStatus: 'in_school', createdAt: '2023-06-05' },
+  { id: 'AH005', firstName: 'Raj', lastName: 'Sharma', nric: 'S9656789E', email: 'raj.sharma@email.com', phone: '+65 9567 8901', dateOfBirth: '1996-09-12', age: 28, address: '56 Bukit Timah Rd, Singapore 229839', educationProvider: 'LASALLE College of the Arts', schoolingStatus: 'graduated', createdAt: '2021-03-25' },
+  { id: 'AH006', firstName: 'Sarah', lastName: 'Chen', nric: 'T0767890F', email: 'sarah.chen@email.com', phone: '+65 9678 9012', dateOfBirth: '2007-02-18', age: 17, address: '34 Bedok North Ave 1, Singapore 469646', educationProvider: 'Institute of Technical Education', schoolingStatus: 'in_school', createdAt: '2024-06-01' },
+  { id: 'AH007', firstName: 'Ahmad', lastName: 'Ibrahim', nric: 'S0178901G', email: 'ahmad.ibrahim@email.com', phone: '+65 9789 0123', dateOfBirth: '2001-12-25', age: 23, address: '89 Woodlands Ave 5, Singapore 738985', educationProvider: 'Nanyang Polytechnic', schoolingStatus: 'deferred', createdAt: '2023-09-15' },
+  { id: 'AH008', firstName: 'Yan Ting', lastName: 'Wong', nric: 'S0489012H', email: 'yanting.wong@email.com', phone: '+65 9890 1234', dateOfBirth: '2004-08-10', age: 20, address: '23 Serangoon Garden Way, Singapore 555948', educationProvider: 'Singapore Polytechnic', schoolingStatus: 'in_school', createdAt: '2024-02-20' },
+  { id: 'AH009', firstName: 'Kavitha', lastName: 'Nair', nric: 'S9990123J', email: 'kavitha.nair@email.com', phone: '+65 9901 2345', dateOfBirth: '1999-04-05', age: 25, address: '67 Clementi Ave 2, Singapore 129803', educationProvider: 'Ngee Ann Polytechnic', schoolingStatus: 'graduated', createdAt: '2022-11-10' },
+  { id: 'AH010', firstName: 'Jun Wei', lastName: 'Ong', nric: 'T0601234K', email: 'junwei.ong@email.com', phone: '+65 9012 3456', dateOfBirth: '2006-01-20', age: 18, address: '41 Pasir Ris Dr 6, Singapore 519422', educationProvider: 'Institute of Technical Education', schoolingStatus: 'in_school', createdAt: '2024-08-15' },
+  { id: 'AH011', firstName: 'Aisha', lastName: 'Hassan', nric: 'S0312345L', email: 'aisha.hassan@email.com', phone: '+65 9111 2222', dateOfBirth: '2003-06-14', age: 21, address: '15 Yishun Ave 11, Singapore 768853', educationProvider: 'Republic Polytechnic', schoolingStatus: 'in_school', createdAt: '2023-04-22' },
+  { id: 'AH012', firstName: 'Kevin', lastName: 'Lee', nric: 'S9723456M', email: 'kevin.lee@email.com', phone: '+65 9222 3333', dateOfBirth: '1997-10-30', age: 27, address: '88 Toa Payoh Lorong 4, Singapore 310088', educationProvider: 'Temasek Polytechnic', schoolingStatus: 'dropped_out', createdAt: '2021-07-18' },
 ];
 
 // Demo Education Accounts - AH001 (Wei Ming) has $100 balance to demonstrate combined payment
@@ -149,14 +155,14 @@ export const educationAccounts: EducationAccount[] = [
 
 // Demo Courses with payment types
 export const courses: Course[] = [
-  { id: 'CRS001', code: 'IT101', name: 'Introduction to Programming', monthlyFee: 150.00, description: 'Basic programming concepts and Python', isActive: true, paymentType: 'recurring', billingCycle: 'monthly', durationMonths: 6, startDate: '2024-01-01', endDate: '2024-06-30' },
-  { id: 'CRS002', code: 'BUS201', name: 'Business Management', monthlyFee: 200.00, description: 'Fundamentals of business operations', isActive: true, paymentType: 'recurring', billingCycle: 'quarterly', durationMonths: 12, startDate: '2024-01-01', endDate: '2024-12-31' },
-  { id: 'CRS003', code: 'ENG102', name: 'English Communication', monthlyFee: 50.00, description: 'Professional English writing and speaking', isActive: true, paymentType: 'recurring', billingCycle: 'monthly', durationMonths: 3, startDate: '2024-01-01', endDate: '2024-03-31' },
-  { id: 'CRS004', code: 'ACC301', name: 'Financial Accounting', monthlyFee: 180.00, description: 'Accounting principles and practices', isActive: true, paymentType: 'recurring', billingCycle: 'bi_annually', durationMonths: 12, startDate: '2024-01-01', endDate: '2024-12-31' },
-  { id: 'CRS005', code: 'DES101', name: 'Graphic Design Basics', monthlyFee: 175.00, description: 'Introduction to visual design', isActive: true, paymentType: 'one_time', durationMonths: 3, startDate: '2024-07-01', endDate: '2024-09-30' },
-  { id: 'CRS006', code: 'MKT201', name: 'Digital Marketing', monthlyFee: 160.00, description: 'Online marketing strategies', isActive: true, paymentType: 'recurring', billingCycle: 'monthly', durationMonths: 4, startDate: '2024-05-01', endDate: '2024-08-31' },
-  { id: 'CRS007', code: 'DATA101', name: 'Data Analytics', monthlyFee: 220.00, description: 'Data analysis and visualization', isActive: true, paymentType: 'recurring', billingCycle: 'monthly', durationMonths: 6, startDate: '2024-10-01', endDate: '2025-03-31' },
-  { id: 'CRS008', code: 'WEB201', name: 'Web Development', monthlyFee: 190.00, description: 'Modern web technologies', isActive: false, paymentType: 'recurring', billingCycle: 'annually', durationMonths: 12, startDate: '2024-01-01', endDate: '2024-12-31' },
+  { id: 'CRS001', code: 'IT101', name: 'Introduction to Programming', provider: 'Singapore Polytechnic', monthlyFee: 150.00, description: 'Basic programming concepts and Python', isActive: true, paymentType: 'recurring', billingCycle: 'monthly', durationMonths: 6, startDate: '2024-01-01', endDate: '2024-06-30' },
+  { id: 'CRS002', code: 'BUS201', name: 'Business Management', provider: 'Ngee Ann Polytechnic', monthlyFee: 200.00, description: 'Fundamentals of business operations', isActive: true, paymentType: 'recurring', billingCycle: 'quarterly', durationMonths: 12, startDate: '2024-01-01', endDate: '2024-12-31' },
+  { id: 'CRS003', code: 'ENG102', name: 'English Communication', provider: 'Republic Polytechnic', monthlyFee: 50.00, description: 'Professional English writing and speaking', isActive: true, paymentType: 'recurring', billingCycle: 'monthly', durationMonths: 3, startDate: '2024-01-01', endDate: '2024-03-31' },
+  { id: 'CRS004', code: 'ACC301', name: 'Financial Accounting', provider: 'Temasek Polytechnic', monthlyFee: 180.00, description: 'Accounting principles and practices', isActive: true, paymentType: 'recurring', billingCycle: 'bi_annually', durationMonths: 12, startDate: '2024-01-01', endDate: '2024-12-31' },
+  { id: 'CRS005', code: 'DES101', name: 'Graphic Design Basics', provider: 'LASALLE College of the Arts', monthlyFee: 175.00, description: 'Introduction to visual design', isActive: true, paymentType: 'one_time', durationMonths: 3, startDate: '2024-07-01', endDate: '2024-09-30' },
+  { id: 'CRS006', code: 'MKT201', name: 'Digital Marketing', provider: 'Singapore Polytechnic', monthlyFee: 160.00, description: 'Online marketing strategies', isActive: true, paymentType: 'recurring', billingCycle: 'monthly', durationMonths: 4, startDate: '2024-05-01', endDate: '2024-08-31' },
+  { id: 'CRS007', code: 'DATA101', name: 'Data Analytics', provider: 'Nanyang Polytechnic', monthlyFee: 220.00, description: 'Data analysis and visualization', isActive: true, paymentType: 'recurring', billingCycle: 'monthly', durationMonths: 6, startDate: '2024-10-01', endDate: '2025-03-31' },
+  { id: 'CRS008', code: 'WEB201', name: 'Web Development', provider: 'Institute of Technical Education', monthlyFee: 190.00, description: 'Modern web technologies', isActive: false, paymentType: 'recurring', billingCycle: 'annually', durationMonths: 12, startDate: '2024-01-01', endDate: '2024-12-31' },
 ];
 
 // Demo Enrolments - AH001 has more courses to demonstrate payment scenarios

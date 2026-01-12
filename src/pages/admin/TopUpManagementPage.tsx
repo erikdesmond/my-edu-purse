@@ -84,7 +84,8 @@ const TopUpManagementPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [amount, setAmount] = useState('');
-  const [reason, setReason] = useState('');
+  const [internalDescription, setInternalDescription] = useState('');
+  const [externalDescription, setExternalDescription] = useState('');
   const [scheduleTopUp, setScheduleTopUp] = useState(false);
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>();
   
@@ -99,7 +100,8 @@ const TopUpManagementPage: React.FC = () => {
   const [batchScheduleTopUp, setBatchScheduleTopUp] = useState(false);
   const [batchScheduledDate, setBatchScheduledDate] = useState<Date | undefined>();
   const [showPreview, setShowPreview] = useState(false);
-  const [batchReason, setBatchReason] = useState('');
+  const [batchInternalDescription, setBatchInternalDescription] = useState('');
+  const [batchExternalDescription, setBatchExternalDescription] = useState('');
   
   // Success result
   const [successResult, setSuccessResult] = useState<{
@@ -208,10 +210,10 @@ const TopUpManagementPage: React.FC = () => {
   };
 
   const handleIndividualTopUp = () => {
-    if (selectedAccountIds.length === 0 || !amount || !reason) {
+    if (selectedAccountIds.length === 0 || !amount || !internalDescription) {
       toast({
         title: "Validation Error",
-        description: "Please select accounts and fill in all required fields.",
+        description: "Please select accounts and fill in all required fields (amount and internal description).",
         variant: "destructive",
       });
       return;
@@ -250,7 +252,8 @@ const TopUpManagementPage: React.FC = () => {
         type: 'top_up',
         amount: amountNum,
         balanceAfter: newBalance,
-        description: reason,
+        description: internalDescription,
+        externalDescription: externalDescription || internalDescription,
         reference: `INDIV-${transactionId}`,
         status: scheduleTopUp ? 'pending' : 'completed',
         createdAt: new Date().toISOString(),
@@ -394,7 +397,8 @@ const TopUpManagementPage: React.FC = () => {
     setSearchQuery('');
     setSelectedAccountIds([]);
     setAmount('');
-    setReason('');
+    setInternalDescription('');
+    setExternalDescription('');
     setScheduleTopUp(false);
     setScheduledDate(undefined);
   };
@@ -410,7 +414,8 @@ const TopUpManagementPage: React.FC = () => {
     setBatchScheduleTopUp(false);
     setBatchScheduledDate(undefined);
     setShowPreview(false);
-    setBatchReason('');
+    setBatchInternalDescription('');
+    setBatchExternalDescription('');
   };
 
   const handleExport = (type: string) => {
@@ -984,15 +989,27 @@ const TopUpManagementPage: React.FC = () => {
               />
             </div>
 
-            {/* Reason - Large Textarea */}
+            {/* Internal Description */}
             <div className="space-y-2">
-              <Label>Reason *</Label>
+              <Label>Internal Description * (Admin only)</Label>
               <Textarea
-                placeholder="e.g., Annual Education Grant, Youth Subsidy, Manual Top-up..."
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                rows={4}
+                placeholder="e.g., Annual Education Grant, Youth Subsidy..."
+                value={internalDescription}
+                onChange={(e) => setInternalDescription(e.target.value)}
+                rows={2}
               />
+            </div>
+
+            {/* External Description */}
+            <div className="space-y-2">
+              <Label>External Description (Visible to student)</Label>
+              <Textarea
+                placeholder="e.g., Education Subsidy Top-up..."
+                value={externalDescription}
+                onChange={(e) => setExternalDescription(e.target.value)}
+                rows={2}
+              />
+              <p className="text-xs text-muted-foreground">Leave empty to use internal description</p>
             </div>
 
             {/* Schedule Top-up */}
@@ -1151,15 +1168,27 @@ const TopUpManagementPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Reason */}
+            {/* Internal Description */}
             <div className="space-y-2">
-              <Label>Reason *</Label>
+              <Label>Internal Description * (Admin only)</Label>
               <Textarea
-                placeholder="e.g., Annual Education Subsidy, Youth Education Grant..."
-                value={batchReason}
-                onChange={(e) => setBatchReason(e.target.value)}
-                rows={3}
+                placeholder="e.g., Annual Education Subsidy..."
+                value={batchInternalDescription}
+                onChange={(e) => setBatchInternalDescription(e.target.value)}
+                rows={2}
               />
+            </div>
+
+            {/* External Description */}
+            <div className="space-y-2">
+              <Label>External Description (Visible to student)</Label>
+              <Textarea
+                placeholder="e.g., Education Subsidy Top-up..."
+                value={batchExternalDescription}
+                onChange={(e) => setBatchExternalDescription(e.target.value)}
+                rows={2}
+              />
+              <p className="text-xs text-muted-foreground">Leave empty to use internal description</p>
             </div>
 
             {/* Schedule */}
@@ -1291,16 +1320,16 @@ const TopUpManagementPage: React.FC = () => {
               </div>
               
               <div>
-                <p className="text-sm text-muted-foreground">Description / Reason</p>
+                <p className="text-sm text-muted-foreground">Internal Description</p>
                 <p className="font-medium">{selectedTransaction.description}</p>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              {selectedTransaction.externalDescription && (
                 <div>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedTransaction.accountCount ? 'Total Accounts' : 'Account'}
-                  </p>
-                  <p className="font-medium">
+                  <p className="text-sm text-muted-foreground">External Description (Student View)</p>
+                  <p className="font-medium">{selectedTransaction.externalDescription}</p>
+                </div>
+              )}
                     {selectedTransaction.accountCount || selectedTransaction.accountId}
                   </p>
                 </div>

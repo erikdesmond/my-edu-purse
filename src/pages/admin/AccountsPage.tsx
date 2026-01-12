@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, Eye, MoreHorizontal, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Plus, Eye, MoreHorizontal, CheckCircle, XCircle, Download } from 'lucide-react';
 import { AdminLayout } from '@/components/layouts/AdminLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 import {
   Table,
   TableBody,
@@ -38,6 +43,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from '@/hooks/use-toast';
 import { useDataStore } from '@/hooks/useDataStore';
 import {
@@ -55,7 +61,8 @@ import {
   getStatusLabel,
   getSchoolingLabel,
   AccountStatus,
-  SchoolingStatus
+  SchoolingStatus,
+  AccountActivationStatus
 } from '@/lib/data';
 
 const AccountsPage: React.FC = () => {
@@ -68,13 +75,18 @@ const AccountsPage: React.FC = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   
   // Form states
+  const [nricInput, setNricInput] = useState('');
+  const [isNricRetrieved, setIsNricRetrieved] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [address, setAddress] = useState('');
+  const [educationProvider, setEducationProvider] = useState('');
   const [schoolingStatus, setSchoolingStatus] = useState<SchoolingStatus>('in_school');
+  const [activationStatus, setActivationStatus] = useState<AccountActivationStatus>('active_immediately');
+  const [scheduledActivationDate, setScheduledActivationDate] = useState<Date | undefined>();
   const [initialBalance, setInitialBalance] = useState('');
 
   // Helper function to mask NRIC (show only last 4 characters)
@@ -148,21 +160,71 @@ const AccountsPage: React.FC = () => {
   };
 
   const resetForm = () => {
+    setNricInput('');
+    setIsNricRetrieved(false);
     setFirstName('');
     setLastName('');
     setEmail('');
     setPhone('');
     setDateOfBirth('');
     setAddress('');
+    setEducationProvider('');
     setSchoolingStatus('in_school');
+    setActivationStatus('active_immediately');
+    setScheduledActivationDate(undefined);
     setInitialBalance('');
   };
 
+  // Simulate NRIC data retrieval
+  const handleRetrieveNric = () => {
+    if (!nricInput || nricInput.length < 9) {
+      toast({
+        title: "Invalid NRIC",
+        description: "Please enter a valid NRIC number (9 characters).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Simulate API call to retrieve person data based on NRIC
+    // In production, this would call a real backend API
+    const mockData = {
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'john.doe@example.com',
+      phone: '+65 9123 4567',
+      dateOfBirth: '1995-05-15',
+      address: '123 Example Street, Singapore 123456',
+    };
+
+    setFirstName(mockData.firstName);
+    setLastName(mockData.lastName);
+    setEmail(mockData.email);
+    setPhone(mockData.phone);
+    setDateOfBirth(mockData.dateOfBirth);
+    setAddress(mockData.address);
+    setIsNricRetrieved(true);
+
+    toast({
+      title: "Data Retrieved",
+      description: "Personal information has been retrieved successfully.",
+    });
+  };
+
   const handleCreateAccount = () => {
-    if (!firstName || !lastName || !email || !dateOfBirth) {
+    if (!nricInput || !firstName || !lastName || !email || !dateOfBirth || !educationProvider) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields.",
+        description: "Please fill in all required fields including NRIC and Education Provider.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (activationStatus === 'scheduled' && !scheduledActivationDate) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a scheduled activation date.",
         variant: "destructive",
       });
       return;
@@ -183,17 +245,24 @@ const AccountsPage: React.FC = () => {
       id: holderId,
       firstName,
       lastName,
-      nric: '', // Will be added later with proper NRIC input
+      nric: nricInput,
       email,
       phone: phone || '',
       dateOfBirth,
       age,
       address: address || '',
+      educationProvider,
       schoolingStatus,
       createdAt: new Date().toISOString().split('T')[0],
     };
 
     addAccountHolder(newHolder);
+
+    // Determine account status based on activation setting
+    let accountStatus: AccountStatus = 'pending';
+    if (activationStatus === 'active_immediately') {
+      accountStatus = 'active';
+    }
 
     // Create education account
     const accountId = `EA${String(Date.now()).slice(-6)}`;
@@ -202,7 +271,11 @@ const AccountsPage: React.FC = () => {
       id: accountId,
       holderId,
       balance,
-      status: 'active' as AccountStatus,
+      status: accountStatus,
+      activationStatus,
+      scheduledActivationDate: activationStatus === 'scheduled' && scheduledActivationDate 
+        ? scheduledActivationDate.toISOString().split('T')[0] 
+        : null,
       openedAt: new Date().toISOString().split('T')[0],
       suspendedAt: null,
       closedAt: null,
@@ -219,7 +292,7 @@ const AccountsPage: React.FC = () => {
       entityId: accountId,
       userId: 'USR001',
       userName: 'Admin User',
-      details: `New education account created for ${firstName} ${lastName}`,
+      details: `New education account created for ${firstName} ${lastName} (${educationProvider})${activationStatus === 'scheduled' ? ` - Scheduled for activation on ${format(scheduledActivationDate!, 'PPP')}` : ''}`,
       createdAt: new Date().toISOString(),
     });
 
@@ -253,85 +326,182 @@ const AccountsPage: React.FC = () => {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name *</Label>
-                  <Input 
-                    id="firstName" 
-                    placeholder="First name"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name *</Label>
-                  <Input 
-                    id="lastName" 
-                    placeholder="Last name"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                  />
-                </div>
-              </div>
+              {/* NRIC Input with Retrieve Button */}
               <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
-                <Input 
-                  id="email" 
-                  type="email"
-                  placeholder="email@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                <Label htmlFor="nric">NRIC Number *</Label>
+                <div className="flex gap-2">
                   <Input 
-                    id="phone" 
-                    placeholder="+65 9XXX XXXX"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    id="nric" 
+                    placeholder="e.g., S1234567A"
+                    value={nricInput}
+                    onChange={(e) => {
+                      setNricInput(e.target.value.toUpperCase());
+                      setIsNricRetrieved(false);
+                    }}
+                    className="flex-1"
+                    maxLength={9}
                   />
+                  <Button type="button" onClick={handleRetrieveNric} variant="secondary">
+                    <Download className="h-4 w-4 mr-2" />
+                    Retrieve
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dob">Date of Birth *</Label>
-                  <Input 
-                    id="dob" 
-                    type="date"
-                    value={dateOfBirth}
-                    onChange={(e) => setDateOfBirth(e.target.value)}
-                  />
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  Enter the NRIC and click Retrieve to fetch personal data
+                </p>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input 
-                  id="address" 
-                  placeholder="Full address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="schooling">Schooling Status</Label>
-                <Select value={schoolingStatus} onValueChange={(v) => setSchoolingStatus(v as SchoolingStatus)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="in_school">In School</SelectItem>
-                    <SelectItem value="graduated">Graduated</SelectItem>
-                    <SelectItem value="deferred">Deferred</SelectItem>
-                    <SelectItem value="dropped_out">Dropped Out</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+
+              {isNricRetrieved && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name *</Label>
+                      <Input 
+                        id="firstName" 
+                        placeholder="First name"
+                        value={firstName}
+                        readOnly
+                        className="bg-muted"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Last Name *</Label>
+                      <Input 
+                        id="lastName" 
+                        placeholder="Last name"
+                        value={lastName}
+                        readOnly
+                        className="bg-muted"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email *</Label>
+                    <Input 
+                      id="email" 
+                      type="email"
+                      placeholder="email@example.com"
+                      value={email}
+                      readOnly
+                      className="bg-muted"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone</Label>
+                      <Input 
+                        id="phone" 
+                        placeholder="+65 9XXX XXXX"
+                        value={phone}
+                        readOnly
+                        className="bg-muted"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="dob">Date of Birth *</Label>
+                      <Input 
+                        id="dob" 
+                        type="date"
+                        value={dateOfBirth}
+                        readOnly
+                        className="bg-muted"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Address</Label>
+                    <Input 
+                      id="address" 
+                      placeholder="Full address"
+                      value={address}
+                      readOnly
+                      className="bg-muted"
+                    />
+                  </div>
+
+                  {/* Education Provider - Editable */}
+                  <div className="space-y-2">
+                    <Label htmlFor="educationProvider">Education Provider (School/Institution) *</Label>
+                    <Input 
+                      id="educationProvider" 
+                      placeholder="e.g., Singapore Polytechnic"
+                      value={educationProvider}
+                      onChange={(e) => setEducationProvider(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="schooling">Schooling Status</Label>
+                    <Select value={schoolingStatus} onValueChange={(v) => setSchoolingStatus(v as SchoolingStatus)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="in_school">In School</SelectItem>
+                        <SelectItem value="graduated">Graduated</SelectItem>
+                        <SelectItem value="deferred">Deferred</SelectItem>
+                        <SelectItem value="dropped_out">Dropped Out</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Account Status Selection */}
+                  <div className="space-y-3">
+                    <Label>Account Status *</Label>
+                    <RadioGroup 
+                      value={activationStatus} 
+                      onValueChange={(v) => setActivationStatus(v as AccountActivationStatus)}
+                      className="space-y-2"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="non_active" id="non_active" />
+                        <Label htmlFor="non_active" className="font-normal">Non-active</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="active_immediately" id="active_immediately" />
+                        <Label htmlFor="active_immediately" className="font-normal">Active Immediately</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="scheduled" id="scheduled" />
+                        <Label htmlFor="scheduled" className="font-normal">Schedule for Activation</Label>
+                      </div>
+                    </RadioGroup>
+
+                    {activationStatus === 'scheduled' && (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !scheduledActivationDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {scheduledActivationDate ? format(scheduledActivationDate, "PPP") : "Pick activation date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={scheduledActivationDate}
+                            onSelect={setScheduledActivationDate}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateAccount}>
+              <Button onClick={handleCreateAccount} disabled={!isNricRetrieved}>
                 Create Account
               </Button>
             </DialogFooter>
