@@ -55,14 +55,18 @@ interface AdminLayoutProps {
 }
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
-  const { adminUser, logout } = useAuth();
+  const { user, userRole, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await signOut();
     navigate('/');
   };
+
+  // Get display name from email
+  const displayName = user?.email?.split('@')[0] || 'Admin';
+  const initials = displayName.slice(0, 2).toUpperCase();
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -143,12 +147,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-accent">
                   <span className="text-sm font-medium text-sidebar-accent-foreground">
-                    {adminUser?.name.split(' ').map(n => n[0]).join('')}
+                    {initials}
                   </span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-sidebar-foreground">{adminUser?.name}</span>
-                  <span className="text-xs text-sidebar-foreground/70 capitalize">{adminUser?.role.replace('_', ' ')}</span>
+                  <span className="text-sm font-medium text-sidebar-foreground">{displayName}</span>
+                  <span className="text-xs text-sidebar-foreground/70 capitalize">{userRole?.replace('_', ' ') || 'User'}</span>
                 </div>
               </div>
               <Button

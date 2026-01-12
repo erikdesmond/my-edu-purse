@@ -183,7 +183,7 @@ const AccountsPage: React.FC = () => {
       id: holderId,
       firstName,
       lastName,
-      nric: '', // Will be added later with proper NRIC input
+      nricMasked: '****0000', // Placeholder - real NRIC would be collected securely
       email,
       phone: phone || '',
       dateOfBirth,
@@ -412,7 +412,7 @@ const AccountsPage: React.FC = () => {
                       <p className="font-medium">{holder.firstName} {holder.lastName}</p>
                     </TableCell>
                     <TableCell className="font-mono text-sm">{account.id}</TableCell>
-                    <TableCell className="font-mono text-sm">{maskNric(holder.nric)}</TableCell>
+                    <TableCell className="font-mono text-sm">{holder.nricMasked}</TableCell>
                     <TableCell>{holder.age}</TableCell>
                     <TableCell>
                       <span className="text-sm">{getSchoolingLabel(holder.schoolingStatus)}</span>

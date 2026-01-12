@@ -1,4 +1,5 @@
-// Demo data for the MoE Education Account System
+// Data types and mock data for the MoE Education Account System
+// NOTE: Full NRICs are NOT stored client-side - only masked versions
 
 export type UserRole = 'admin' | 'finance' | 'school_ops' | 'customer_service' | 'it_support';
 export type AccountStatus = 'active' | 'suspended' | 'closed' | 'pending';
@@ -11,7 +12,7 @@ export interface AccountHolder {
   id: string;
   firstName: string;
   lastName: string;
-  nric: string; // Full NRIC stored securely
+  nricMasked: string; // Only masked NRIC (e.g., "****345A") - never full NRIC client-side
   email: string;
   phone: string;
   dateOfBirth: string;
@@ -115,20 +116,20 @@ export interface AdminUser {
   isActive: boolean;
 }
 
-// Demo Account Holders
+// Demo Account Holders - NRICs are MASKED (never full NRIC client-side)
 export const accountHolders: AccountHolder[] = [
-  { id: 'AH001', firstName: 'Wei Ming', lastName: 'Tan', nric: 'S9012345A', email: 'weiming.tan@email.com', phone: '+65 9123 4567', dateOfBirth: '2000-03-15', age: 24, address: '123 Orchard Road, Singapore 238888', schoolingStatus: 'in_school', createdAt: '2023-01-15' },
-  { id: 'AH002', firstName: 'Priya', lastName: 'Kumar', nric: 'S9823456B', email: 'priya.kumar@email.com', phone: '+65 9234 5678', dateOfBirth: '1998-07-22', age: 26, address: '45 Tampines Ave 3, Singapore 529001', schoolingStatus: 'graduated', createdAt: '2022-08-20' },
-  { id: 'AH003', firstName: 'Muhammad', lastName: 'Ali', nric: 'S0534567C', email: 'muhammad.ali@email.com', phone: '+65 9345 6789', dateOfBirth: '2005-11-08', age: 19, address: '78 Jurong West St 41, Singapore 649410', schoolingStatus: 'in_school', createdAt: '2024-01-10' },
-  { id: 'AH004', firstName: 'Mei Ling', lastName: 'Lim', nric: 'S0245678D', email: 'meiling.lim@email.com', phone: '+65 9456 7890', dateOfBirth: '2002-05-30', age: 22, address: '12 Marine Parade, Singapore 449269', schoolingStatus: 'in_school', createdAt: '2023-06-05' },
-  { id: 'AH005', firstName: 'Raj', lastName: 'Sharma', nric: 'S9656789E', email: 'raj.sharma@email.com', phone: '+65 9567 8901', dateOfBirth: '1996-09-12', age: 28, address: '56 Bukit Timah Rd, Singapore 229839', schoolingStatus: 'graduated', createdAt: '2021-03-25' },
-  { id: 'AH006', firstName: 'Sarah', lastName: 'Chen', nric: 'T0767890F', email: 'sarah.chen@email.com', phone: '+65 9678 9012', dateOfBirth: '2007-02-18', age: 17, address: '34 Bedok North Ave 1, Singapore 469646', schoolingStatus: 'in_school', createdAt: '2024-06-01' },
-  { id: 'AH007', firstName: 'Ahmad', lastName: 'Ibrahim', nric: 'S0178901G', email: 'ahmad.ibrahim@email.com', phone: '+65 9789 0123', dateOfBirth: '2001-12-25', age: 23, address: '89 Woodlands Ave 5, Singapore 738985', schoolingStatus: 'deferred', createdAt: '2023-09-15' },
-  { id: 'AH008', firstName: 'Yan Ting', lastName: 'Wong', nric: 'S0489012H', email: 'yanting.wong@email.com', phone: '+65 9890 1234', dateOfBirth: '2004-08-10', age: 20, address: '23 Serangoon Garden Way, Singapore 555948', schoolingStatus: 'in_school', createdAt: '2024-02-20' },
-  { id: 'AH009', firstName: 'Kavitha', lastName: 'Nair', nric: 'S9990123J', email: 'kavitha.nair@email.com', phone: '+65 9901 2345', dateOfBirth: '1999-04-05', age: 25, address: '67 Clementi Ave 2, Singapore 129803', schoolingStatus: 'graduated', createdAt: '2022-11-10' },
-  { id: 'AH010', firstName: 'Jun Wei', lastName: 'Ong', nric: 'T0601234K', email: 'junwei.ong@email.com', phone: '+65 9012 3456', dateOfBirth: '2006-01-20', age: 18, address: '41 Pasir Ris Dr 6, Singapore 519422', schoolingStatus: 'in_school', createdAt: '2024-08-15' },
-  { id: 'AH011', firstName: 'Aisha', lastName: 'Hassan', nric: 'S0312345L', email: 'aisha.hassan@email.com', phone: '+65 9111 2222', dateOfBirth: '2003-06-14', age: 21, address: '15 Yishun Ave 11, Singapore 768853', schoolingStatus: 'in_school', createdAt: '2023-04-22' },
-  { id: 'AH012', firstName: 'Kevin', lastName: 'Lee', nric: 'S9723456M', email: 'kevin.lee@email.com', phone: '+65 9222 3333', dateOfBirth: '1997-10-30', age: 27, address: '88 Toa Payoh Lorong 4, Singapore 310088', schoolingStatus: 'dropped_out', createdAt: '2021-07-18' },
+  { id: 'AH001', firstName: 'Wei Ming', lastName: 'Tan', nricMasked: '****345A', email: 'weiming.tan@email.com', phone: '+65 9123 4567', dateOfBirth: '2000-03-15', age: 24, address: '123 Orchard Road, Singapore 238888', schoolingStatus: 'in_school', createdAt: '2023-01-15' },
+  { id: 'AH002', firstName: 'Priya', lastName: 'Kumar', nricMasked: '****456B', email: 'priya.kumar@email.com', phone: '+65 9234 5678', dateOfBirth: '1998-07-22', age: 26, address: '45 Tampines Ave 3, Singapore 529001', schoolingStatus: 'graduated', createdAt: '2022-08-20' },
+  { id: 'AH003', firstName: 'Muhammad', lastName: 'Ali', nricMasked: '****567C', email: 'muhammad.ali@email.com', phone: '+65 9345 6789', dateOfBirth: '2005-11-08', age: 19, address: '78 Jurong West St 41, Singapore 649410', schoolingStatus: 'in_school', createdAt: '2024-01-10' },
+  { id: 'AH004', firstName: 'Mei Ling', lastName: 'Lim', nricMasked: '****678D', email: 'meiling.lim@email.com', phone: '+65 9456 7890', dateOfBirth: '2002-05-30', age: 22, address: '12 Marine Parade, Singapore 449269', schoolingStatus: 'in_school', createdAt: '2023-06-05' },
+  { id: 'AH005', firstName: 'Raj', lastName: 'Sharma', nricMasked: '****789E', email: 'raj.sharma@email.com', phone: '+65 9567 8901', dateOfBirth: '1996-09-12', age: 28, address: '56 Bukit Timah Rd, Singapore 229839', schoolingStatus: 'graduated', createdAt: '2021-03-25' },
+  { id: 'AH006', firstName: 'Sarah', lastName: 'Chen', nricMasked: '****890F', email: 'sarah.chen@email.com', phone: '+65 9678 9012', dateOfBirth: '2007-02-18', age: 17, address: '34 Bedok North Ave 1, Singapore 469646', schoolingStatus: 'in_school', createdAt: '2024-06-01' },
+  { id: 'AH007', firstName: 'Ahmad', lastName: 'Ibrahim', nricMasked: '****901G', email: 'ahmad.ibrahim@email.com', phone: '+65 9789 0123', dateOfBirth: '2001-12-25', age: 23, address: '89 Woodlands Ave 5, Singapore 738985', schoolingStatus: 'deferred', createdAt: '2023-09-15' },
+  { id: 'AH008', firstName: 'Yan Ting', lastName: 'Wong', nricMasked: '****012H', email: 'yanting.wong@email.com', phone: '+65 9890 1234', dateOfBirth: '2004-08-10', age: 20, address: '23 Serangoon Garden Way, Singapore 555948', schoolingStatus: 'in_school', createdAt: '2024-02-20' },
+  { id: 'AH009', firstName: 'Kavitha', lastName: 'Nair', nricMasked: '****123J', email: 'kavitha.nair@email.com', phone: '+65 9901 2345', dateOfBirth: '1999-04-05', age: 25, address: '67 Clementi Ave 2, Singapore 129803', schoolingStatus: 'graduated', createdAt: '2022-11-10' },
+  { id: 'AH010', firstName: 'Jun Wei', lastName: 'Ong', nricMasked: '****234K', email: 'junwei.ong@email.com', phone: '+65 9012 3456', dateOfBirth: '2006-01-20', age: 18, address: '41 Pasir Ris Dr 6, Singapore 519422', schoolingStatus: 'in_school', createdAt: '2024-08-15' },
+  { id: 'AH011', firstName: 'Aisha', lastName: 'Hassan', nricMasked: '****345L', email: 'aisha.hassan@email.com', phone: '+65 9111 2222', dateOfBirth: '2003-06-14', age: 21, address: '15 Yishun Ave 11, Singapore 768853', schoolingStatus: 'in_school', createdAt: '2023-04-22' },
+  { id: 'AH012', firstName: 'Kevin', lastName: 'Lee', nricMasked: '****456M', email: 'kevin.lee@email.com', phone: '+65 9222 3333', dateOfBirth: '1997-10-30', age: 27, address: '88 Toa Payoh Lorong 4, Singapore 310088', schoolingStatus: 'dropped_out', createdAt: '2021-07-18' },
 ];
 
 // Demo Education Accounts - AH001 (Wei Ming) has $100 balance to demonstrate combined payment
@@ -235,52 +236,38 @@ export const getEnrolmentsByCourse = (courseId: string) => enrolments.filter(e =
 export const getTransactionsByAccount = (accountId: string) => transactions.filter(t => t.accountId === accountId);
 export const getOutstandingChargesByAccount = (accountId: string) => outstandingCharges.filter(c => c.accountId === accountId);
 
-// Stats helpers
-export const getActiveAccountsCount = () => educationAccounts.filter(ea => ea.status === 'active').length;
-export const getTodayNewAccounts = () => educationAccounts.filter(ea => ea.openedAt === new Date().toISOString().split('T')[0]).length;
-export const getThisMonthTopUps = () => {
-  const now = new Date();
-  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const topUps = transactions.filter(t => t.type === 'top_up' && t.createdAt.startsWith(thisMonth) && t.status === 'completed');
-  return {
-    count: topUps.length,
-    amount: topUps.reduce((sum, t) => sum + t.amount, 0)
-  };
-};
-export const getThisMonthCharges = () => {
-  const now = new Date();
-  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const charges = transactions.filter(t => t.type === 'charge' && t.createdAt.startsWith(thisMonth) && t.status === 'completed');
-  return {
-    count: charges.length,
-    amount: Math.abs(charges.reduce((sum, t) => sum + t.amount, 0))
-  };
-};
-
 // Format helpers
-export const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-SG', { style: 'currency', currency: 'SGD' }).format(amount);
+export const formatCurrency = (amount: number) => 
+  new Intl.NumberFormat('en-SG', { style: 'currency', currency: 'SGD' }).format(amount);
+
+export const formatDate = (date: string) => 
+  new Date(date).toLocaleDateString('en-SG', { year: 'numeric', month: 'short', day: 'numeric' });
+
+export const formatDateTime = (date: string) =>
+  new Date(date).toLocaleString('en-SG', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+// Label helpers
+export const getStatusLabel = (status: AccountStatus): string => {
+  const labels: Record<AccountStatus, string> = {
+    active: 'Active',
+    suspended: 'Suspended',
+    closed: 'Closed',
+    pending: 'Pending'
+  };
+  return labels[status] || status;
 };
 
-export const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('en-SG', { 
-    day: 'numeric', 
-    month: 'short', 
-    year: 'numeric' 
-  });
+export const getSchoolingLabel = (status: SchoolingStatus): string => {
+  const labels: Record<SchoolingStatus, string> = {
+    in_school: 'In School',
+    graduated: 'Graduated',
+    dropped_out: 'Dropped Out',
+    deferred: 'Deferred'
+  };
+  return labels[status] || status;
 };
 
-export const formatDateTime = (dateString: string) => {
-  return new Date(dateString).toLocaleString('en-SG', { 
-    day: 'numeric', 
-    month: 'short', 
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
-
-export const getRoleLabel = (role: UserRole) => {
+export const getRoleLabel = (role: UserRole): string => {
   const labels: Record<UserRole, string> = {
     admin: 'Administrator',
     finance: 'Finance',
@@ -288,25 +275,5 @@ export const getRoleLabel = (role: UserRole) => {
     customer_service: 'Customer Service',
     it_support: 'IT Support'
   };
-  return labels[role];
-};
-
-export const getStatusLabel = (status: AccountStatus) => {
-  const labels: Record<AccountStatus, string> = {
-    active: 'Active',
-    suspended: 'Suspended',
-    closed: 'Closed',
-    pending: 'Pending'
-  };
-  return labels[status];
-};
-
-export const getSchoolingLabel = (status: SchoolingStatus) => {
-  const labels: Record<SchoolingStatus, string> = {
-    in_school: 'In School',
-    graduated: 'Graduated',
-    dropped_out: 'Dropped Out',
-    deferred: 'Deferred'
-  };
-  return labels[status];
+  return labels[role] || role;
 };

@@ -32,15 +32,20 @@ interface CitizenLayoutProps {
 }
 
 export const CitizenLayout: React.FC<CitizenLayoutProps> = ({ children }) => {
-  const { citizenUser, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await signOut();
     navigate('/');
   };
+
+  // Get display info from email
+  const email = user?.email || '';
+  const displayName = email.split('@')[0] || 'User';
+  const initials = displayName.slice(0, 2).toUpperCase();
 
   return (
     <div className="min-h-screen bg-background">
@@ -87,10 +92,10 @@ export const CitizenLayout: React.FC<CitizenLayoutProps> = ({ children }) => {
             <div className="hidden sm:flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent">
                 <span className="text-sm font-medium text-accent-foreground">
-                  {citizenUser?.firstName[0]}{citizenUser?.lastName[0]}
+                  {initials}
                 </span>
               </div>
-              <span className="text-sm font-medium text-foreground">{citizenUser?.firstName}</span>
+              <span className="text-sm font-medium text-foreground">{displayName}</span>
             </div>
             <Button
               variant="ghost"
@@ -114,12 +119,12 @@ export const CitizenLayout: React.FC<CitizenLayoutProps> = ({ children }) => {
                   <div className="flex items-center gap-3 pb-6 border-b">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent">
                       <span className="text-sm font-medium text-accent-foreground">
-                        {citizenUser?.firstName[0]}{citizenUser?.lastName[0]}
+                        {initials}
                       </span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium">{citizenUser?.firstName} {citizenUser?.lastName}</span>
-                      <span className="text-xs text-muted-foreground">{citizenUser?.email}</span>
+                      <span className="text-sm font-medium">{displayName}</span>
+                      <span className="text-xs text-muted-foreground">{email}</span>
                     </div>
                   </div>
 

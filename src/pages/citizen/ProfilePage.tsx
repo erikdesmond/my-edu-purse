@@ -17,9 +17,10 @@ import {
 import { toast } from '@/hooks/use-toast';
 
 const ProfilePage: React.FC = () => {
-  const { citizenUser } = useAuth();
-  const holder = citizenUser ? getAccountHolder(citizenUser.id) : null;
-  const educationAccount = citizenUser ? getEducationAccountByHolder(citizenUser.id) : null;
+  const { user } = useAuth();
+  // Demo fallback - in production this would be fetched based on auth user
+  const holder = user ? getAccountHolder('AH001') : null;
+  const educationAccount = user ? getEducationAccountByHolder('AH001') : null;
   
   const [phone, setPhone] = useState(holder?.phone || '');
   const [email, setEmail] = useState(holder?.email || '');

@@ -1,90 +1,192 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { UserRole, accountHolders, educationAccounts, getAccountHolder, getEducationAccountByHolder } from '@/lib/data';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { User, Session } from '@supabase/supabase-js';
 
 type PortalType = 'admin' | 'citizen';
-
-interface AdminUser {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-}
-
-interface CitizenUser {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  accountId: string;
-}
+type AppRole = 'admin' | 'finance' | 'school_ops' | 'customer_service' | 'it_support' | 'citizen';
 
 interface AuthContextType {
   portal: PortalType | null;
-  adminUser: AdminUser | null;
-  citizenUser: CitizenUser | null;
-  loginAsAdmin: (email: string, password: string) => boolean;
-  loginAsCitizen: (email: string, password: string) => boolean;
-  logout: () => void;
+  user: User | null;
+  session: Session | null;
+  userRole: AppRole | null;
+  isAdmin: boolean;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string; portal?: PortalType }>;
+  signUp: (email: string, password: string, role: AppRole) => Promise<{ success: boolean; error?: string }>;
+  signOut: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [userRole, setUserRole] = useState<AppRole | null>(null);
   const [portal, setPortal] = useState<PortalType | null>(null);
-  const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
-  const [citizenUser, setCitizenUser] = useState<CitizenUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const loginAsAdmin = (email: string, password: string): boolean => {
-    // Demo login - accept any email ending with @moe.gov.sg
-    if (email.endsWith('@moe.gov.sg') && password.length >= 1) {
-      setPortal('admin');
-      setAdminUser({
-        id: 'USR001',
-        name: 'John Tan',
-        email: email,
-        role: 'admin'
-      });
-      return true;
-    }
-    return false;
-  };
+  const isAdmin = userRole !== null && userRole !== 'citizen';
 
-  const loginAsCitizen = (email: string, password: string): boolean => {
-    // Demo login - find account holder by email
-    const holder = accountHolders.find(ah => ah.email.toLowerCase() === email.toLowerCase());
-    if (holder && password.length >= 1) {
-      const account = getEducationAccountByHolder(holder.id);
-      if (account) {
-        setPortal('citizen');
-        setCitizenUser({
-          id: holder.id,
-          firstName: holder.firstName,
-          lastName: holder.lastName,
-          email: holder.email,
-          accountId: account.id
-        });
-        return true;
+  // Fetch user role from database
+  const fetchUserRole = async (userId: string): Promise<AppRole | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching user role:', error);
+        return null;
       }
+
+      return data?.role as AppRole || null;
+    } catch (err) {
+      console.error('Error in fetchUserRole:', err);
+      return null;
     }
-    return false;
   };
 
-  const logout = () => {
+  // Determine portal based on role
+  const getPortalFromRole = (role: AppRole | null): PortalType | null => {
+    if (!role) return null;
+    if (role === 'citizen') return 'citizen';
+    return 'admin';
+  };
+
+  useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, newSession) => {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+
+        if (newSession?.user) {
+          // Defer role fetching to avoid blocking
+          setTimeout(async () => {
+            const role = await fetchUserRole(newSession.user.id);
+            setUserRole(role);
+            setPortal(getPortalFromRole(role));
+            setLoading(false);
+          }, 0);
+        } else {
+          setUserRole(null);
+          setPortal(null);
+          setLoading(false);
+        }
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(async ({ data: { session: existingSession } }) => {
+      setSession(existingSession);
+      setUser(existingSession?.user ?? null);
+
+      if (existingSession?.user) {
+        const role = await fetchUserRole(existingSession.user.id);
+        setUserRole(role);
+        setPortal(getPortalFromRole(role));
+      }
+      setLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const signIn = async (email: string, password: string): Promise<{ success: boolean; error?: string; portal?: PortalType }> => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (data.user) {
+        const role = await fetchUserRole(data.user.id);
+        
+        if (!role) {
+          // User exists but has no role assigned
+          await supabase.auth.signOut();
+          return { success: false, error: 'No role assigned to this account. Please contact an administrator.' };
+        }
+
+        setUserRole(role);
+        const userPortal = getPortalFromRole(role);
+        setPortal(userPortal);
+        
+        return { success: true, portal: userPortal ?? undefined };
+      }
+
+      return { success: false, error: 'Login failed' };
+    } catch (err) {
+      console.error('Sign in error:', err);
+      return { success: false, error: 'An unexpected error occurred' };
+    }
+  };
+
+  const signUp = async (email: string, password: string, role: AppRole): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          emailRedirectTo: window.location.origin,
+        },
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (data.user) {
+        // Assign role to user
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({ user_id: data.user.id, role });
+
+        if (roleError) {
+          console.error('Error assigning role:', roleError);
+          return { success: false, error: 'Account created but role assignment failed. Please contact support.' };
+        }
+
+        return { success: true };
+      }
+
+      return { success: false, error: 'Sign up failed' };
+    } catch (err) {
+      console.error('Sign up error:', err);
+      return { success: false, error: 'An unexpected error occurred' };
+    }
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+    setUserRole(null);
     setPortal(null);
-    setAdminUser(null);
-    setCitizenUser(null);
   };
 
   return (
     <AuthContext.Provider value={{
       portal,
-      adminUser,
-      citizenUser,
-      loginAsAdmin,
-      loginAsCitizen,
-      logout,
-      isAuthenticated: portal !== null
+      user,
+      session,
+      userRole,
+      isAdmin,
+      loading,
+      signIn,
+      signUp,
+      signOut,
+      isAuthenticated: !!user && !!userRole
     }}>
       {children}
     </AuthContext.Provider>
