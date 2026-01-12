@@ -299,10 +299,10 @@ const TopUpManagementPage: React.FC = () => {
       return;
     }
 
-    if (!batchReason) {
+    if (!batchInternalDescription) {
       toast({
         title: "Validation Error",
-        description: "Please enter a reason.",
+        description: "Please enter an internal description.",
         variant: "destructive",
       });
       return;
@@ -339,7 +339,8 @@ const TopUpManagementPage: React.FC = () => {
     addBatch({
       id: batchId,
       type: 'top_up',
-      description: batchReason,
+      description: batchInternalDescription,
+      externalDescription: batchExternalDescription || batchInternalDescription,
       totalAmount,
       accountCount: eligibleAccounts.length,
       status: batchScheduleTopUp ? 'pending' : 'completed',
@@ -358,7 +359,8 @@ const TopUpManagementPage: React.FC = () => {
           type: 'top_up',
           amount: amountPerAccount,
           balanceAfter: newBalance,
-          description: batchReason,
+          description: batchInternalDescription,
+          externalDescription: batchExternalDescription || batchInternalDescription,
           reference: `${batchId}-${account.id}`,
           status: 'completed',
           createdAt: new Date().toISOString(),
@@ -1330,6 +1332,13 @@ const TopUpManagementPage: React.FC = () => {
                   <p className="font-medium">{selectedTransaction.externalDescription}</p>
                 </div>
               )}
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedTransaction.accountCount ? 'Total Accounts' : 'Account'}
+                  </p>
+                  <p className="font-medium">
                     {selectedTransaction.accountCount || selectedTransaction.accountId}
                   </p>
                 </div>
@@ -1347,13 +1356,6 @@ const TopUpManagementPage: React.FC = () => {
                 <p className="text-sm text-muted-foreground">Created At</p>
                 <p className="font-medium">{formatDateTime(selectedTransaction.createdAt)}</p>
               </div>
-              
-              {selectedTransaction.reference && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Reference</p>
-                  <p className="font-mono text-sm">{selectedTransaction.reference}</p>
-                </div>
-              )}
               
               {selectedTransaction.createdBy && (
                 <div>
@@ -1458,7 +1460,8 @@ const TopUpManagementPage: React.FC = () => {
                   // Pre-fill batch form with scheduled data and open batch dialog
                   setBatchAmount(String(selectedTransaction.totalAmount / selectedTransaction.accountCount));
                   setBatchAmountType('per_account');
-                  setBatchReason(selectedTransaction.description || '');
+                  setBatchInternalDescription(selectedTransaction.description || '');
+                  setBatchExternalDescription(selectedTransaction.externalDescription || '');
                   setBatchScheduleTopUp(true);
                   setDetailsDialogOpen(false);
                   setBatchDialogOpen(true);
