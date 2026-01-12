@@ -246,7 +246,7 @@ export const formatDate = (date: string) =>
 export const formatDateTime = (date: string) =>
   new Date(date).toLocaleString('en-SG', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-// Label helpers
+// Label helpers for display
 export const getStatusLabel = (status: AccountStatus): string => {
   const labels: Record<AccountStatus, string> = {
     active: 'Active',
