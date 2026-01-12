@@ -36,13 +36,12 @@ const navItems: NavItem[] = [
   { label: 'Education Accounts', href: '/admin/accounts', icon: Wallet },
   { label: 'Top-up Management', href: '/admin/topups', icon: CreditCard },
   { 
-    label: 'Courses', 
+    label: 'Course Management', 
     href: '/admin/courses', 
     icon: BookOpen,
     children: [
       { label: 'All Courses', href: '/admin/courses' },
-      { label: 'Enrolments', href: '/admin/courses/enrolments' },
-      { label: 'Fee Run', href: '/admin/courses/fee-run' },
+      { label: 'Courses Report', href: '/admin/courses/report' },
     ]
   },
   { label: 'Reports', href: '/admin/reports', icon: FileText },

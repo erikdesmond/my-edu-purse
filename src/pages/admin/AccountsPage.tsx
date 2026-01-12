@@ -71,7 +71,6 @@ const AccountsPage: React.FC = () => {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [schoolingFilter, setSchoolingFilter] = useState<string>('all');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   
   // Form states
@@ -111,9 +110,8 @@ const AccountsPage: React.FC = () => {
       account.id.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus = statusFilter === 'all' || account.status === statusFilter;
-    const matchesSchooling = schoolingFilter === 'all' || holder.schoolingStatus === schoolingFilter;
 
-    return matchesSearch && matchesStatus && matchesSchooling;
+    return matchesSearch && matchesStatus;
   });
 
   const handleSuspendAccount = (accountId: string) => {
@@ -535,18 +533,6 @@ const AccountsPage: React.FC = () => {
                   <SelectItem value="closed">Closed</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={schoolingFilter} onValueChange={setSchoolingFilter}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Schooling Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="in_school">In School</SelectItem>
-                  <SelectItem value="graduated">Graduated</SelectItem>
-                  <SelectItem value="deferred">Deferred</SelectItem>
-                  <SelectItem value="dropped_out">Dropped Out</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </CardContent>
@@ -562,12 +548,8 @@ const AccountsPage: React.FC = () => {
                 <TableHead>Account ID</TableHead>
                 <TableHead>NRIC</TableHead>
                 <TableHead>Age</TableHead>
-                <TableHead>Schooling Status</TableHead>
                 <TableHead className="text-right">Balance</TableHead>
                 <TableHead>Account Status</TableHead>
-                <TableHead>Opened</TableHead>
-                <TableHead>Suspended</TableHead>
-                <TableHead>Closed</TableHead>
                 <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -584,9 +566,6 @@ const AccountsPage: React.FC = () => {
                     <TableCell className="font-mono text-sm">{account.id}</TableCell>
                     <TableCell className="font-mono text-sm">{maskNric(holder.nric)}</TableCell>
                     <TableCell>{holder.age}</TableCell>
-                    <TableCell>
-                      <span className="text-sm">{getSchoolingLabel(holder.schoolingStatus)}</span>
-                    </TableCell>
                     <TableCell className="text-right font-medium">
                       {formatCurrency(account.balance)}
                     </TableCell>
@@ -594,15 +573,6 @@ const AccountsPage: React.FC = () => {
                       <Badge variant={account.status as any}>
                         {getStatusLabel(account.status)}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDate(account.openedAt)}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {account.suspendedAt ? formatDate(account.suspendedAt) : '-'}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {account.closedAt ? formatDate(account.closedAt) : '-'}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>

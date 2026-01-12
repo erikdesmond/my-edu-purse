@@ -27,14 +27,16 @@ import {
   getEducationAccount,
   getAccountHolder,
   getTransactionsByAccount,
-  getEnrolmentsByHolder,
+  getOutstandingChargesByAccount,
   getCourse,
+  getEnrolments
+} from '@/lib/dataStore';
+import {
   formatCurrency,
   formatDate,
   formatDateTime,
   getStatusLabel,
-  getSchoolingLabel,
-  getOutstandingChargesByAccount
+  getSchoolingLabel
 } from '@/lib/data';
 import { toast } from '@/hooks/use-toast';
 import { useDataStore } from '@/hooks/useDataStore';
@@ -53,10 +55,14 @@ interface AccountLogEntry {
 
 const AccountDetailPage: React.FC = () => {
   const { accountId } = useParams<{ accountId: string }>();
-  const account = getEducationAccount(accountId || '');
+  
+  // Use dataStore with useDataStore to get reactive data for newly created accounts
+  const allAccounts = useDataStore(() => [getEducationAccount(accountId || '')].filter(Boolean));
+  const account = allAccounts[0] || getEducationAccount(accountId || '');
   const holder = account ? getAccountHolder(account.holderId) : null;
   const transactions = account ? getTransactionsByAccount(account.id) : [];
-  const enrolments = holder ? getEnrolmentsByHolder(holder.id) : [];
+  const allEnrolments = useDataStore(getEnrolments);
+  const enrolments = holder ? allEnrolments.filter(e => e.holderId === holder.id) : [];
   const outstandingCharges = account ? getOutstandingChargesByAccount(account.id) : [];
   const auditLogs = useDataStore(getAuditLogs);
   
