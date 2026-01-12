@@ -18,8 +18,7 @@ import TopUpManagementPage from "./pages/admin/TopUpManagementPage";
 import ReportsPage from "./pages/admin/ReportsPage";
 import AuditLogPage from "./pages/admin/AuditLogPage";
 import UserManagementPage from "./pages/admin/UserManagementPage";
-import EnrolmentsPage from "./pages/admin/EnrolmentsPage";
-import FeeRunPage from "./pages/admin/FeeRunPage";
+import CoursesReportPage from "./pages/admin/CoursesReportPage";
 
 // Citizen Pages
 import CitizenDashboard from "./pages/citizen/CitizenDashboard";
@@ -67,8 +66,7 @@ const AppRoutes = () => {
       <Route path="/admin/accounts" element={<ProtectedRoute portal="admin"><AccountsPage /></ProtectedRoute>} />
       <Route path="/admin/accounts/:accountId" element={<ProtectedRoute portal="admin"><AccountDetailPage /></ProtectedRoute>} />
       <Route path="/admin/courses" element={<ProtectedRoute portal="admin"><AdminCoursesPage /></ProtectedRoute>} />
-      <Route path="/admin/courses/enrolments" element={<ProtectedRoute portal="admin"><EnrolmentsPage /></ProtectedRoute>} />
-      <Route path="/admin/courses/fee-run" element={<ProtectedRoute portal="admin"><FeeRunPage /></ProtectedRoute>} />
+      <Route path="/admin/courses/report" element={<ProtectedRoute portal="admin"><CoursesReportPage /></ProtectedRoute>} />
       <Route path="/admin/topups" element={<ProtectedRoute portal="admin"><TopUpManagementPage /></ProtectedRoute>} />
       <Route path="/admin/reports" element={<ProtectedRoute portal="admin"><ReportsPage /></ProtectedRoute>} />
       <Route path="/admin/audit" element={<ProtectedRoute portal="admin"><AuditLogPage /></ProtectedRoute>} />
