@@ -89,8 +89,6 @@ const CourseDetailPage: React.FC = () => {
   const [formBillingCycle, setFormBillingCycle] = useState<BillingCycle>('monthly');
   const [formStartDate, setFormStartDate] = useState<Date | undefined>();
   const [formEndDate, setFormEndDate] = useState<Date | undefined>();
-  const [formPaymentDeadlineDays, setFormPaymentDeadlineDays] = useState('30');
-  const [formBillingDay, setFormBillingDay] = useState('1');
   
   // Student search states
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
@@ -209,8 +207,6 @@ const CourseDetailPage: React.FC = () => {
     setFormBillingCycle(course.billingCycle || 'monthly');
     setFormStartDate(course.startDate ? new Date(course.startDate) : undefined);
     setFormEndDate(course.endDate ? new Date(course.endDate) : undefined);
-    setFormPaymentDeadlineDays(course.paymentDeadlineDays?.toString() || '30');
-    setFormBillingDay(course.billingDay?.toString() || '1');
     setEditDialogOpen(true);
   };
   
@@ -235,8 +231,6 @@ const CourseDetailPage: React.FC = () => {
       startDate: formStartDate ? formStartDate.toISOString().split('T')[0] : undefined,
       endDate: formEndDate ? formEndDate.toISOString().split('T')[0] : undefined,
       durationMonths,
-      paymentDeadlineDays: formPaymentType === 'one_time' ? parseInt(formPaymentDeadlineDays) : undefined,
-      billingDay: formPaymentType === 'recurring' ? parseInt(formBillingDay) : undefined,
     });
 
     toast({
@@ -340,23 +334,11 @@ const CourseDetailPage: React.FC = () => {
               <p className="text-muted-foreground">Payment Type</p>
               <p className="font-medium">{course.paymentType === 'one_time' ? 'One-time' : 'Recurring'}</p>
             </div>
-            {course.paymentType === 'one_time' && course.paymentDeadlineDays && (
-              <div>
-                <p className="text-muted-foreground">Payment Deadline</p>
-                <p className="font-medium">{course.paymentDeadlineDays} days</p>
-              </div>
-            )}
             {course.paymentType === 'recurring' && (
-              <>
-                <div>
-                  <p className="text-muted-foreground">Billing Cycle</p>
-                  <p className="font-medium">{course.billingCycle ? BILLING_CYCLE_LABELS[course.billingCycle] : '-'}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Billing Day</p>
-                  <p className="font-medium">{course.billingDay ? `Day ${course.billingDay}` : '-'}</p>
-                </div>
-              </>
+              <div>
+                <p className="text-muted-foreground">Billing Cycle</p>
+                <p className="font-medium">{course.billingCycle ? BILLING_CYCLE_LABELS[course.billingCycle] : '-'}</p>
+              </div>
             )}
             {course.startDate && (
               <div>
@@ -596,51 +578,21 @@ const CourseDetailPage: React.FC = () => {
               </Select>
             </div>
 
-            {/* Conditional Fields based on Payment Type */}
-            {formPaymentType === 'one_time' && (
-              <div className="space-y-2">
-                <Label htmlFor="edit-deadline">Payment Deadline (Days) *</Label>
-                <Input 
-                  id="edit-deadline" 
-                  type="number" 
-                  min="1"
-                  placeholder="e.g., 30"
-                  value={formPaymentDeadlineDays}
-                  onChange={(e) => setFormPaymentDeadlineDays(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">Number of days after enrollment to pay</p>
-              </div>
-            )}
-
+            {/* Recurring Payment: Billing Cycle */}
             {formPaymentType === 'recurring' && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-billing-day">Billing Day (1-31) *</Label>
-                  <Input 
-                    id="edit-billing-day" 
-                    type="number" 
-                    min="1"
-                    max="31"
-                    placeholder="e.g., 1"
-                    value={formBillingDay}
-                    onChange={(e) => setFormBillingDay(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">Day of month to charge</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Billing Cycle</Label>
-                  <Select value={formBillingCycle} onValueChange={(v) => setFormBillingCycle(v as BillingCycle)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                      <SelectItem value="quarterly">Quarterly</SelectItem>
-                      <SelectItem value="bi_annually">Bi-annually (6 months)</SelectItem>
-                      <SelectItem value="annually">Annually</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label>Billing Cycle</Label>
+                <Select value={formBillingCycle} onValueChange={(v) => setFormBillingCycle(v as BillingCycle)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="quarterly">Quarterly</SelectItem>
+                    <SelectItem value="bi_annually">Bi-annually (6 months)</SelectItem>
+                    <SelectItem value="annually">Annually</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
