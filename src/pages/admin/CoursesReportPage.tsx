@@ -212,7 +212,7 @@ const CoursesReportPage: React.FC = () => {
       </PageHeader>
 
       {/* Overview Statistics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6">
+      <div className="grid gap-4 md:grid-cols-3 mb-6">
         <StatCard
           title="Total Courses"
           value={overallStats.totalCourses}
@@ -221,25 +221,11 @@ const CoursesReportPage: React.FC = () => {
           variant="primary"
         />
         <StatCard
-          title="Active Courses"
-          value={overallStats.activeCourses}
-          subtitle="Currently running"
-          icon={<TrendingUp className="h-5 w-5" />}
-          variant="success"
-        />
-        <StatCard
           title="Total Enrolments"
           value={overallStats.totalEnrolments}
           subtitle={`${overallStats.activeEnrolments} active`}
           icon={<Users className="h-5 w-5" />}
           variant="info"
-        />
-        <StatCard
-          title="Active Enrolments"
-          value={overallStats.activeEnrolments}
-          subtitle="Students enrolled"
-          icon={<Users className="h-5 w-5" />}
-          variant="default"
         />
         <StatCard
           title="Total Revenue"
@@ -441,19 +427,6 @@ const CoursesReportPage: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Summary */}
-          <Card className="mt-6">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Transactions Summary</p>
-                  <p className="text-lg font-semibold">
-                    {charges.length} transactions • {formatCurrency(Math.abs(charges.reduce((sum, t) => sum + t.amount, 0)))} total charged
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </AdminLayout>

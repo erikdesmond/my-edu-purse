@@ -778,8 +778,8 @@ const CoursesPage: React.FC = () => {
   return (
     <AdminLayout>
       <PageHeader 
-        title="Courses" 
-        description="Manage courses and their fees"
+        title="All Courses" 
+        description="Manage courses and enrolments"
       >
         <div className="flex gap-2">
           {/* Import Button */}
@@ -869,14 +869,7 @@ const CoursesPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="courses" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="courses">Course Management</TabsTrigger>
-          <TabsTrigger value="fees">Fee Charges Summary</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="courses">
-          {/* Courses Grid */}
+      {/* Courses Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredCourses.map((course) => {
           const enrolments = getEnrolmentsByCourse(course.id);
@@ -939,28 +932,9 @@ const CoursesPage: React.FC = () => {
         })}
       </div>
 
-          <p className="mt-6 text-sm text-muted-foreground text-center">
-            Showing {filteredCourses.length} of {courses.length} courses
-          </p>
-        </TabsContent>
-
-        <TabsContent value="fees">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <DollarSign className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-lg font-medium mb-2">Fee Charges Summary</p>
-                <p className="text-muted-foreground mb-4">
-                  View detailed charge transactions in the Courses Report page.
-                </p>
-                <Button variant="outline" onClick={() => window.location.href = '/admin/courses/report'}>
-                  Go to Courses Report
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <p className="mt-6 text-sm text-muted-foreground text-center">
+        Showing {filteredCourses.length} of {courses.length} courses
+      </p>
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
