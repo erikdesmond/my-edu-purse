@@ -19,6 +19,7 @@ import ReportsPage from "./pages/admin/ReportsPage";
 import AuditLogPage from "./pages/admin/AuditLogPage";
 import UserManagementPage from "./pages/admin/UserManagementPage";
 import CoursesReportPage from "./pages/admin/CoursesReportPage";
+import CourseDetailPage from "./pages/admin/CourseDetailPage";
 
 // Citizen Pages
 import CitizenDashboard from "./pages/citizen/CitizenDashboard";
@@ -66,6 +67,7 @@ const AppRoutes = () => {
       <Route path="/admin/accounts" element={<ProtectedRoute portal="admin"><AccountsPage /></ProtectedRoute>} />
       <Route path="/admin/accounts/:accountId" element={<ProtectedRoute portal="admin"><AccountDetailPage /></ProtectedRoute>} />
       <Route path="/admin/courses" element={<ProtectedRoute portal="admin"><AdminCoursesPage /></ProtectedRoute>} />
+      <Route path="/admin/courses/:courseId" element={<ProtectedRoute portal="admin"><CourseDetailPage /></ProtectedRoute>} />
       <Route path="/admin/courses/report" element={<ProtectedRoute portal="admin"><CoursesReportPage /></ProtectedRoute>} />
       <Route path="/admin/topups" element={<ProtectedRoute portal="admin"><TopUpManagementPage /></ProtectedRoute>} />
       <Route path="/admin/reports" element={<ProtectedRoute portal="admin"><ReportsPage /></ProtectedRoute>} />

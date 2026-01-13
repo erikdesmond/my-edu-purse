@@ -1,4 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Edit, Users, Search, X, Upload, Download, DollarSign, Calendar as CalendarIcon, Eye, UserPlus } from 'lucide-react';
 import { AdminLayout } from '@/components/layouts/AdminLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -72,280 +73,15 @@ const BILLING_CYCLE_LABELS: Record<BillingCycle, string> = {
   annually: 'Annually',
 };
 
-// Course Details Content Component
-interface CourseDetailsContentProps {
-  course: ReturnType<typeof getCourses>[0];
-  onEdit: () => void;
-  onManageStudents: () => void;
-  onRemoveStudent: (enrolmentId: string) => void;
-  onClose: () => void;
-}
-
-const BILLING_CYCLE_LABELS_DETAIL: Record<string, string> = {
+const BILLING_CYCLE_LABELS_COMPACT: Record<BillingCycle, string> = {
   monthly: 'Monthly',
   quarterly: 'Quarterly',
   bi_annually: 'Bi-annually',
   annually: 'Annually',
 };
 
-const CourseDetailsContent: React.FC<CourseDetailsContentProps> = ({ 
-  course, 
-  onEdit, 
-  onManageStudents,
-  onRemoveStudent,
-  onClose 
-}) => {
-  const enrolments = getEnrolmentsByCourse(course.id);
-  const activeEnrolments = enrolments.filter(e => e.isActive);
-  const transactions = getTransactions();
-  const educationAccounts = getEducationAccounts();
-  const outstandingCharges = getOutstandingCharges();
-  
-  // Calculate course statistics
-  const courseStats = useMemo(() => {
-    // Total collected from transactions for this course
-    const courseTransactions = transactions.filter(
-      t => t.courseId === course.id && t.type === 'charge' && t.status === 'completed'
-    );
-    const totalCollected = Math.abs(courseTransactions.reduce((sum, t) => sum + t.amount, 0));
-    
-    // Outstanding amount for this course
-    const courseOutstanding = outstandingCharges.filter(
-      c => c.courseId === course.id && (c.status === 'unpaid' || c.status === 'overdue')
-    );
-    const totalOutstanding = courseOutstanding.reduce((sum, c) => sum + c.amount, 0);
-    
-    return {
-      totalEnrolled: activeEnrolments.length,
-      totalCollected,
-      totalOutstanding,
-    };
-  }, [course.id, activeEnrolments, transactions, outstandingCharges]);
-  
-  // Get student list with account status and payment status
-  const studentList = useMemo(() => {
-    return activeEnrolments.map(enrolment => {
-      const holder = getAccountHolder(enrolment.holderId);
-      const account = educationAccounts.find(acc => acc.holderId === enrolment.holderId);
-      
-      // Check outstanding charges for this student and course
-      const studentCharges = outstandingCharges.filter(
-        c => c.courseId === course.id && c.accountId === account?.id
-      );
-      
-      let paymentStatus: 'paid' | 'pending' | 'overdue' = 'paid';
-      if (studentCharges.some(c => c.status === 'overdue')) {
-        paymentStatus = 'overdue';
-      } else if (studentCharges.some(c => c.status === 'unpaid')) {
-        paymentStatus = 'pending';
-      }
-      
-      return {
-        enrolmentId: enrolment.id,
-        holderId: enrolment.holderId,
-        accountId: account?.id || '-',
-        name: holder ? `${holder.firstName} ${holder.lastName}` : 'Unknown',
-        accountStatus: account?.status || 'unknown',
-        enrollmentDate: enrolment.startDate,
-        paymentStatus,
-      };
-    });
-  }, [activeEnrolments, course.id, educationAccounts, outstandingCharges]);
-  
-  const getPaymentStatusBadge = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return <Badge variant="success">Paid</Badge>;
-      case 'pending':
-        return <Badge variant="warning">Pending</Badge>;
-      case 'overdue':
-        return <Badge variant="destructive">Overdue</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-  
-  const getAccountStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge variant="success">Active</Badge>;
-      case 'suspended':
-        return <Badge variant="warning">Suspended</Badge>;
-      case 'closed':
-        return <Badge variant="destructive">Closed</Badge>;
-      case 'not_active':
-        return <Badge variant="secondary">Not Active</Badge>;
-      case 'pending_activation':
-        return <Badge variant="outline">Pending Activation</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-  
-  return (
-    <>
-      <DialogHeader>
-        <div className="flex items-start justify-between">
-          <div>
-            <Badge variant="secondary" className="mb-2">{course.code}</Badge>
-            <DialogTitle className="text-xl">{course.name}</DialogTitle>
-            <DialogDescription className="mt-1">
-              {course.provider} • {course.paymentType === 'one_time' ? 'One-time' : 'Recurring'} Payment
-            </DialogDescription>
-          </div>
-          <Badge variant={course.isActive ? 'active' : 'closed'}>
-            {course.isActive ? 'Active' : 'Inactive'}
-          </Badge>
-        </div>
-      </DialogHeader>
-      
-      {/* Course Configuration */}
-      <div className="py-4 border-b">
-        <Label className="text-base font-semibold mb-3 block">Course Configuration</Label>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-          <div>
-            <p className="text-muted-foreground">Fee</p>
-            <p className="font-medium">{formatCurrency(course.monthlyFee)}{course.paymentType === 'recurring' ? '/period' : ''}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Payment Type</p>
-            <p className="font-medium">{course.paymentType === 'one_time' ? 'One-time' : 'Recurring'}</p>
-          </div>
-          {course.paymentType === 'one_time' && course.paymentDeadlineDays && (
-            <div>
-              <p className="text-muted-foreground">Payment Deadline</p>
-              <p className="font-medium">{course.paymentDeadlineDays} days</p>
-            </div>
-          )}
-          {course.paymentType === 'recurring' && (
-            <>
-              <div>
-                <p className="text-muted-foreground">Billing Cycle</p>
-                <p className="font-medium">{course.billingCycle ? BILLING_CYCLE_LABELS_DETAIL[course.billingCycle] : '-'}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Billing Day</p>
-                <p className="font-medium">{course.billingDay ? `Day ${course.billingDay}` : '-'}</p>
-              </div>
-            </>
-          )}
-          {course.startDate && (
-            <div>
-              <p className="text-muted-foreground">Start Date</p>
-              <p className="font-medium">{course.startDate}</p>
-            </div>
-          )}
-          {course.endDate && (
-            <div>
-              <p className="text-muted-foreground">End Date</p>
-              <p className="font-medium">{course.endDate}</p>
-            </div>
-          )}
-          {course.durationMonths && (
-            <div>
-              <p className="text-muted-foreground">Duration</p>
-              <p className="font-medium">{course.durationMonths} month{course.durationMonths > 1 ? 's' : ''}</p>
-            </div>
-          )}
-        </div>
-        {course.description && (
-          <div className="mt-3">
-            <p className="text-muted-foreground text-sm">Description</p>
-            <p className="text-sm">{course.description}</p>
-          </div>
-        )}
-      </div>
-      
-      {/* Course Summary Stats */}
-      <div className="grid grid-cols-3 gap-4 py-4">
-        <Card>
-          <CardContent className="pt-4 pb-3">
-            <p className="text-2xl font-bold">{courseStats.totalEnrolled}</p>
-            <p className="text-sm text-muted-foreground">Total Enrolled</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-3">
-            <p className="text-2xl font-bold text-green-600">{formatCurrency(courseStats.totalCollected)}</p>
-            <p className="text-sm text-muted-foreground">Total Collected</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-3">
-            <p className="text-2xl font-bold text-amber-600">{formatCurrency(courseStats.totalOutstanding)}</p>
-            <p className="text-sm text-muted-foreground">Outstanding</p>
-          </CardContent>
-        </Card>
-      </div>
-      
-      {/* Action Buttons */}
-      <div className="flex gap-2 pb-4">
-        <Button variant="outline" size="sm" onClick={onEdit}>
-          <Edit className="h-4 w-4 mr-2" /> Edit Course
-        </Button>
-        <Button variant="outline" size="sm" onClick={onManageStudents}>
-          <UserPlus className="h-4 w-4 mr-2" /> Add Students
-        </Button>
-      </div>
-      
-      {/* Student List Table */}
-      <div className="space-y-2">
-        <Label className="text-base font-semibold">Student List</Label>
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Account ID</TableHead>
-                <TableHead>Account Status</TableHead>
-                <TableHead>Enrollment Date</TableHead>
-                <TableHead>Payment Status</TableHead>
-                <TableHead className="w-[60px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {studentList.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                    No students enrolled in this course
-                  </TableCell>
-                </TableRow>
-              ) : (
-                studentList.map(student => (
-                  <TableRow key={student.enrolmentId}>
-                    <TableCell className="font-medium">{student.name}</TableCell>
-                    <TableCell className="font-mono text-sm">{student.accountId}</TableCell>
-                    <TableCell>{getAccountStatusBadge(student.accountStatus)}</TableCell>
-                    <TableCell>{student.enrollmentDate}</TableCell>
-                    <TableCell>{getPaymentStatusBadge(student.paymentStatus)}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => onRemoveStudent(student.enrolmentId)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-      
-      <DialogFooter className="mt-4">
-        <Button variant="outline" onClick={onClose}>
-          Close
-        </Button>
-      </DialogFooter>
-    </>
-  );
-};
-
 const CoursesPage: React.FC = () => {
+  const navigate = useNavigate();
   const courses = useDataStore(getCourses);
   const accountHolders = useDataStore(getAccountHolders);
   const transactions = useDataStore(getTransactions);
@@ -355,7 +91,6 @@ const CoursesPage: React.FC = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [manageStudentsDialogOpen, setManageStudentsDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<typeof courses[0] | null>(null);
   
   // Form states
@@ -469,8 +204,7 @@ const CoursesPage: React.FC = () => {
   };
 
   const handleViewDetails = (course: typeof courses[0]) => {
-    setSelectedCourse(course);
-    setDetailsDialogOpen(true);
+    navigate(`/admin/courses/${course.id}`);
   };
 
   const handleUpdateCourse = () => {
@@ -1051,29 +785,6 @@ const CoursesPage: React.FC = () => {
               <Plus className="h-4 w-4 mr-1" /> Enroll {selectedStudentIds.length > 0 ? `(${selectedStudentIds.length})` : ''}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Course Details Dialog */}
-      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
-          {selectedCourse && (
-            <CourseDetailsContent 
-              course={selectedCourse}
-              onEdit={() => {
-                setDetailsDialogOpen(false);
-                handleEditCourse(selectedCourse);
-              }}
-              onManageStudents={() => {
-                setDetailsDialogOpen(false);
-                handleManageStudents(selectedCourse);
-              }}
-              onRemoveStudent={(enrolmentId) => {
-                handleRemoveStudent(enrolmentId);
-              }}
-              onClose={() => setDetailsDialogOpen(false)}
-            />
-          )}
         </DialogContent>
       </Dialog>
     </AdminLayout>
