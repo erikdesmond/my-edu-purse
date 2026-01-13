@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Plus, Edit, Users, Search, X, Upload, Download, DollarSign, Calendar as CalendarIcon } from 'lucide-react';
+import React, { useState, useRef, useMemo } from 'react';
+import { Plus, Edit, Users, Search, X, Upload, Download, DollarSign, Calendar as CalendarIcon, Eye, UserPlus } from 'lucide-react';
 import { AdminLayout } from '@/components/layouts/AdminLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -51,9 +51,11 @@ import {
   addEnrolment,
   removeEnrolment,
   getTransactions,
-  getEducationAccount
+  getEducationAccount,
+  getEducationAccounts,
+  getOutstandingCharges
 } from '@/lib/dataStore';
-import { formatCurrency, formatDateTime, PaymentType, BillingCycle } from '@/lib/data';
+import { formatCurrency, formatDateTime, PaymentType, BillingCycle, getStatusLabel } from '@/lib/data';
 import { ProviderCombobox } from '@/components/ui/provider-combobox';
 
 const BILLING_CYCLE_DURATIONS: Record<BillingCycle, number> = {
@@ -70,6 +72,222 @@ const BILLING_CYCLE_LABELS: Record<BillingCycle, string> = {
   annually: 'Annually',
 };
 
+// Course Details Content Component
+interface CourseDetailsContentProps {
+  course: ReturnType<typeof getCourses>[0];
+  onEdit: () => void;
+  onManageStudents: () => void;
+  onClose: () => void;
+}
+
+const CourseDetailsContent: React.FC<CourseDetailsContentProps> = ({ 
+  course, 
+  onEdit, 
+  onManageStudents, 
+  onClose 
+}) => {
+  const enrolments = getEnrolmentsByCourse(course.id);
+  const activeEnrolments = enrolments.filter(e => e.isActive);
+  const transactions = getTransactions();
+  const educationAccounts = getEducationAccounts();
+  const outstandingCharges = getOutstandingCharges();
+  
+  // Calculate course statistics
+  const courseStats = useMemo(() => {
+    // Get all account IDs enrolled in this course
+    const enrolledAccountIds = activeEnrolments.map(e => {
+      const account = educationAccounts.find(acc => acc.holderId === e.holderId);
+      return account?.id;
+    }).filter(Boolean);
+    
+    // Total collected from transactions for this course
+    const courseTransactions = transactions.filter(
+      t => t.courseId === course.id && t.type === 'charge' && t.status === 'completed'
+    );
+    const totalCollected = Math.abs(courseTransactions.reduce((sum, t) => sum + t.amount, 0));
+    
+    // Outstanding amount for this course
+    const courseOutstanding = outstandingCharges.filter(
+      c => c.courseId === course.id && (c.status === 'unpaid' || c.status === 'overdue')
+    );
+    const totalOutstanding = courseOutstanding.reduce((sum, c) => sum + c.amount, 0);
+    
+    // Payment status breakdown
+    const paidCount = courseTransactions.length;
+    const unpaidCount = courseOutstanding.filter(c => c.status === 'unpaid').length;
+    const overdueCount = courseOutstanding.filter(c => c.status === 'overdue').length;
+    
+    return {
+      totalEnrolled: activeEnrolments.length,
+      totalCollected,
+      totalOutstanding,
+      paidCount,
+      unpaidCount,
+      overdueCount,
+    };
+  }, [course.id, activeEnrolments, transactions, outstandingCharges, educationAccounts]);
+  
+  // Get student list with account status and payment status
+  const studentList = useMemo(() => {
+    return activeEnrolments.map(enrolment => {
+      const holder = getAccountHolder(enrolment.holderId);
+      const account = educationAccounts.find(acc => acc.holderId === enrolment.holderId);
+      
+      // Check outstanding charges for this student and course
+      const studentCharges = outstandingCharges.filter(
+        c => c.courseId === course.id && c.accountId === account?.id
+      );
+      
+      let paymentStatus: 'paid' | 'pending' | 'overdue' = 'paid';
+      if (studentCharges.some(c => c.status === 'overdue')) {
+        paymentStatus = 'overdue';
+      } else if (studentCharges.some(c => c.status === 'unpaid')) {
+        paymentStatus = 'pending';
+      }
+      
+      return {
+        enrolmentId: enrolment.id,
+        holderId: enrolment.holderId,
+        name: holder ? `${holder.firstName} ${holder.lastName}` : 'Unknown',
+        accountStatus: account?.status || 'unknown',
+        enrollmentDate: enrolment.startDate,
+        paymentStatus,
+      };
+    });
+  }, [activeEnrolments, course.id, educationAccounts, outstandingCharges]);
+  
+  const getPaymentStatusBadge = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return <Badge variant="success">Paid</Badge>;
+      case 'pending':
+        return <Badge variant="warning">Pending</Badge>;
+      case 'overdue':
+        return <Badge variant="destructive">Overdue</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+  
+  const getAccountStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge variant="success">Active</Badge>;
+      case 'suspended':
+        return <Badge variant="warning">Suspended</Badge>;
+      case 'closed':
+        return <Badge variant="destructive">Closed</Badge>;
+      case 'not_active':
+        return <Badge variant="secondary">Not Active</Badge>;
+      case 'pending_activation':
+        return <Badge variant="outline">Pending Activation</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+  
+  return (
+    <>
+      <DialogHeader>
+        <div className="flex items-start justify-between">
+          <div>
+            <Badge variant="secondary" className="mb-2">{course.code}</Badge>
+            <DialogTitle className="text-xl">{course.name}</DialogTitle>
+            <DialogDescription className="mt-1">
+              {course.provider} • {course.paymentType === 'one_time' ? 'One-time' : 'Recurring'} Payment
+            </DialogDescription>
+          </div>
+          <Badge variant={course.isActive ? 'active' : 'closed'}>
+            {course.isActive ? 'Active' : 'Inactive'}
+          </Badge>
+        </div>
+      </DialogHeader>
+      
+      {/* Course Summary Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4">
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <p className="text-2xl font-bold">{courseStats.totalEnrolled}</p>
+            <p className="text-sm text-muted-foreground">Total Enrolled</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <p className="text-2xl font-bold text-green-600">{formatCurrency(courseStats.totalCollected)}</p>
+            <p className="text-sm text-muted-foreground">Total Collected</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <p className="text-2xl font-bold text-amber-600">{formatCurrency(courseStats.totalOutstanding)}</p>
+            <p className="text-sm text-muted-foreground">Outstanding</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex gap-2">
+              <span className="text-green-600 font-medium">{courseStats.paidCount} Paid</span>
+              <span className="text-amber-600 font-medium">{courseStats.unpaidCount} Pending</span>
+            </div>
+            <p className="text-sm text-muted-foreground">Payment Status</p>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Action Buttons */}
+      <div className="flex gap-2 pb-4">
+        <Button variant="outline" size="sm" onClick={onEdit}>
+          <Edit className="h-4 w-4 mr-2" /> Edit Course
+        </Button>
+        <Button variant="outline" size="sm" onClick={onManageStudents}>
+          <UserPlus className="h-4 w-4 mr-2" /> Add Students
+        </Button>
+      </div>
+      
+      {/* Student List Table */}
+      <div className="space-y-2">
+        <Label className="text-base font-semibold">Student List</Label>
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Account Status</TableHead>
+                <TableHead>Enrollment Date</TableHead>
+                <TableHead>Payment Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {studentList.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    No students enrolled in this course
+                  </TableCell>
+                </TableRow>
+              ) : (
+                studentList.map(student => (
+                  <TableRow key={student.enrolmentId}>
+                    <TableCell className="font-medium">{student.name}</TableCell>
+                    <TableCell>{getAccountStatusBadge(student.accountStatus)}</TableCell>
+                    <TableCell>{student.enrollmentDate}</TableCell>
+                    <TableCell>{getPaymentStatusBadge(student.paymentStatus)}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+      
+      <DialogFooter className="mt-4">
+        <Button variant="outline" onClick={onClose}>
+          Close
+        </Button>
+      </DialogFooter>
+    </>
+  );
+};
+
 const CoursesPage: React.FC = () => {
   const courses = useDataStore(getCourses);
   const accountHolders = useDataStore(getAccountHolders);
@@ -80,6 +298,7 @@ const CoursesPage: React.FC = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [manageStudentsDialogOpen, setManageStudentsDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<typeof courses[0] | null>(null);
   
   // Form states
@@ -93,6 +312,8 @@ const CoursesPage: React.FC = () => {
   const [formBillingCycle, setFormBillingCycle] = useState<BillingCycle>('monthly');
   const [formStartDate, setFormStartDate] = useState<Date | undefined>();
   const [formEndDate, setFormEndDate] = useState<Date | undefined>();
+  const [formPaymentDeadlineDays, setFormPaymentDeadlineDays] = useState('30');
+  const [formBillingDay, setFormBillingDay] = useState('1');
   
   // Student search states
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
@@ -124,6 +345,8 @@ const CoursesPage: React.FC = () => {
     setFormBillingCycle('monthly');
     setFormStartDate(undefined);
     setFormEndDate(undefined);
+    setFormPaymentDeadlineDays('30');
+    setFormBillingDay('1');
   };
 
   const handleCreateCourse = () => {
@@ -156,6 +379,8 @@ const CoursesPage: React.FC = () => {
       paymentType: formPaymentType,
       billingCycle: formPaymentType === 'recurring' ? formBillingCycle : undefined,
       durationMonths,
+      paymentDeadlineDays: formPaymentType === 'one_time' ? parseInt(formPaymentDeadlineDays) : undefined,
+      billingDay: formPaymentType === 'recurring' ? parseInt(formBillingDay) : undefined,
     };
 
     addCourse(newCourse);
@@ -181,7 +406,14 @@ const CoursesPage: React.FC = () => {
     setFormBillingCycle(course.billingCycle || 'monthly');
     setFormStartDate(course.startDate ? new Date(course.startDate) : undefined);
     setFormEndDate(course.endDate ? new Date(course.endDate) : undefined);
+    setFormPaymentDeadlineDays(course.paymentDeadlineDays?.toString() || '30');
+    setFormBillingDay(course.billingDay?.toString() || '1');
     setEditDialogOpen(true);
+  };
+
+  const handleViewDetails = (course: typeof courses[0]) => {
+    setSelectedCourse(course);
+    setDetailsDialogOpen(true);
   };
 
   const handleUpdateCourse = () => {
@@ -205,6 +437,8 @@ const CoursesPage: React.FC = () => {
       startDate: formStartDate ? formStartDate.toISOString().split('T')[0] : undefined,
       endDate: formEndDate ? formEndDate.toISOString().split('T')[0] : undefined,
       durationMonths,
+      paymentDeadlineDays: formPaymentType === 'one_time' ? parseInt(formPaymentDeadlineDays) : undefined,
+      billingDay: formPaymentType === 'recurring' ? parseInt(formBillingDay) : undefined,
     });
 
     toast({
@@ -412,21 +646,51 @@ const CoursesPage: React.FC = () => {
         </Select>
       </div>
 
-      {/* Billing Cycle - Only show for recurring */}
-      {formPaymentType === 'recurring' && (
+      {/* One-time Payment: Payment Deadline (Days) */}
+      {formPaymentType === 'one_time' && (
         <div className="space-y-2">
-          <Label>Billing Cycle</Label>
-          <Select value={formBillingCycle} onValueChange={(v) => setFormBillingCycle(v as BillingCycle)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(BILLING_CYCLE_LABELS).map(([value, label]) => (
-                <SelectItem key={value} value={value}>{label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label>Payment Deadline (Days)</Label>
+          <Input 
+            type="number" 
+            min="1"
+            max="365"
+            placeholder="e.g., 30"
+            value={formPaymentDeadlineDays}
+            onChange={(e) => setFormPaymentDeadlineDays(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">Number of days after enrollment to pay</p>
         </div>
+      )}
+
+      {/* Recurring Payment: Billing Cycle + Billing Day */}
+      {formPaymentType === 'recurring' && (
+        <>
+          <div className="space-y-2">
+            <Label>Billing Cycle</Label>
+            <Select value={formBillingCycle} onValueChange={(v) => setFormBillingCycle(v as BillingCycle)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(BILLING_CYCLE_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Billing Day (1-31)</Label>
+            <Input 
+              type="number" 
+              min="1"
+              max="31"
+              placeholder="e.g., 1"
+              value={formBillingDay}
+              onChange={(e) => setFormBillingDay(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">Day of the month when billing occurs</p>
+          </div>
+        </>
       )}
 
       <div className="flex items-center justify-between">
@@ -604,23 +868,14 @@ const CoursesPage: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={() => handleEditCourse(course)}
-                  >
-                    <Edit className="h-4 w-4 mr-1" /> Edit
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => handleManageStudents(course)}
-                  >
-                    <Users className="h-4 w-4" />
-                  </Button>
-                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => handleViewDetails(course)}
+                >
+                  <Eye className="h-4 w-4 mr-2" /> View Details
+                </Button>
               </CardContent>
             </Card>
           );
@@ -862,6 +1117,26 @@ const CoursesPage: React.FC = () => {
               Close
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Course Details Dialog */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+          {selectedCourse && (
+            <CourseDetailsContent 
+              course={selectedCourse}
+              onEdit={() => {
+                setDetailsDialogOpen(false);
+                handleEditCourse(selectedCourse);
+              }}
+              onManageStudents={() => {
+                setDetailsDialogOpen(false);
+                handleManageStudents(selectedCourse);
+              }}
+              onClose={() => setDetailsDialogOpen(false)}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </AdminLayout>

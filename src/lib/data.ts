@@ -76,6 +76,8 @@ export interface Course {
   durationMonths?: number;
   startDate?: string;
   endDate?: string;
+  paymentDeadlineDays?: number; // For one-time payments
+  billingDay?: number; // For recurring payments (1-31)
 }
 
 export interface Enrolment {
